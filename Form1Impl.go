@@ -204,6 +204,7 @@ func (f *TForm1) OnApplyButtonClick(sender vcl.IObject) {
 	data.RunPort = strings.TrimSpace(f.PortEdit.Text())
 	marshal, _ := json.Marshal(data)
 	WriteContent("data.json",string(marshal))
+	go CreateCron()
 	go WebStart(port)
 	vcl.ShowMessage("数据应用成功")
 }
