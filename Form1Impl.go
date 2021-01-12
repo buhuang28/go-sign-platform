@@ -121,7 +121,7 @@ func (f *TForm1) OnApplyButtonClick(sender vcl.IObject) {
 	schoolName = strings.TrimSpace(f.SchoolEdit.Text())
 	newQA := make(map[string]string)
 	for i := 0;i<int(Form1.TaskListView.Items().Count());i++ {
-		Q := Form1.TaskListView.Items().Item(int32(i)).SubItems().Strings(1)
+		Q := Form1.TaskListView.Items().Item(int32(i)).SubItems().Strings(0)
 		if Q == "" {
 			vcl.ShowMessage("问题不可为空")
 			return
