@@ -7,7 +7,6 @@ import (
 	"crypto/md5"
 	"encoding/hex"
 	"encoding/json"
-	"fmt"
 	"io"
 	"io/ioutil"
 	"log"
@@ -104,12 +103,12 @@ func PostRequest(url,cookie string,header map[string]string,data interface{}) (b
 	resp, err := client.Do(request)
 
 	if err != nil {
-		fmt.Println("请求失败")
+		logger.Println("请求失败")
 		return false,[]byte{}
 	}
 	respBytes, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
-		fmt.Println("数据读取失败")
+		logger.Println("数据读取失败")
 		return false,[]byte{}
 	}
 	return true,respBytes
@@ -125,12 +124,12 @@ func SendPostForm(api string,params map[string]string) (bool,[]byte) {
 
 	res, err := http.PostForm(api, data)
 	if err != nil {
-		fmt.Println(err.Error())
+		logger.Println(err.Error())
 		return false,[]byte{}
 	}
 	respBytes,err := ioutil.ReadAll(res.Body)
 	if err != nil || respBytes == nil {
-		fmt.Println(err)
+		logger.Println(err)
 		return false,[]byte{}
 	}
 
@@ -414,7 +413,7 @@ func WriteContent(fileName,content string) bool {
 func ReadFile(fileName string) *User {
 	f, err := ioutil.ReadFile(fileName)
 	if err != nil {
-		fmt.Println("read fail", err)
+		logger.Println("read fail", err)
 		return nil
 	}
 	var u User
@@ -425,7 +424,7 @@ func ReadFile(fileName string) *User {
 func ReadSetting() *SettingData {
 	f, err := ioutil.ReadFile("data.json")
 	if err != nil {
-		fmt.Println("read fail", err)
+		logger.Println("read fail", err)
 		return nil
 	}
 	var data SettingData
@@ -436,7 +435,7 @@ func ReadSetting() *SettingData {
 func ReadDir(path string) []os.FileInfo {
 	FileInfo,err := ioutil.ReadDir(path )
 	if err != nil{
-		fmt.Println("读取 img 文件夹出错")
+		logger.Println("读取 img 文件夹出错")
 		return nil
 	}
 	if FileInfo == nil || len(FileInfo) == 0 {
@@ -535,19 +534,18 @@ func PostMultipartImage(data,header *map[string]string,imgName,url string)  {
 		req.Header.Set("Content-Type", "application/json")
 	}
 
-
 	// Don不要忘记设置内容类型,这将包含边界。
 	req.Header.Set("Content-Type", Multipar.FormDataContentType())
-	fmt.Println(Multipar.FormDataContentType())
+	logger.Println(Multipar.FormDataContentType())
 	//提交请求
 	client := &http.Client{}
 	res, err := client.Do(req)
 	if err != nil {
-		fmt.Println("提交错误",err.Error())
+		logger.Println("提交错误",err.Error())
 		return
 	}
 	respBytes, err := ioutil.ReadAll(res.Body)
-	fmt.Println("提交返回数据",string(respBytes))
+	logger.Println("提交返回数据",string(respBytes))
 	return
 }
 
@@ -559,3 +557,4 @@ func RandInt64(max int64) int64 {
 	b := rand.Int63n(max)
 	return b
 }
+
