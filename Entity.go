@@ -240,3 +240,9 @@ type SettingData struct {
 	EveningMin string `json:"evening_min"`
 	SignStep string `json:"sign_step"`
 }
+
+type CallBackData struct {
+	Status int64 `json:"status"`
+	UserName string `json:"user_name"`
+	SignResult string `json:"result"`
+}
