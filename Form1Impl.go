@@ -6,31 +6,31 @@ package main
 
 import (
 	"encoding/json"
-	"fmt"
 	"github.com/ying32/govcl/vcl"
 	"github.com/ying32/govcl/vcl/types"
 	"github.com/ying32/govcl/vcl/win"
 	"strconv"
 	"strings"
 )
+
 //::private::
 type TForm1Fields struct {
 	subItemHit win.TLVHitTestInfo
 }
 
 func (f *TForm1) OnFormCreate(sender vcl.IObject) {
-	for i := 0;i<24;i++ {
-		f.MorningHour.Items().Add(strconv.FormatInt(int64(i),10))
-		f.NoonHour.Items().Add(strconv.FormatInt(int64(i),10))
-		f.EveningHour.Items().Add(strconv.FormatInt(int64(i),10))
+	for i := 0; i < 24; i++ {
+		f.MorningHour.Items().Add(strconv.FormatInt(int64(i), 10))
+		f.NoonHour.Items().Add(strconv.FormatInt(int64(i), 10))
+		f.EveningHour.Items().Add(strconv.FormatInt(int64(i), 10))
 	}
-	for i := 0;i<60;i++ {
-		f.MorningMin.Items().Add(strconv.FormatInt(int64(i),10))
-		f.NoonMin.Items().Add(strconv.FormatInt(int64(i),10))
-		f.EveningMin.Items().Add(strconv.FormatInt(int64(i),10))
+	for i := 0; i < 60; i++ {
+		f.MorningMin.Items().Add(strconv.FormatInt(int64(i), 10))
+		f.NoonMin.Items().Add(strconv.FormatInt(int64(i), 10))
+		f.EveningMin.Items().Add(strconv.FormatInt(int64(i), 10))
 	}
-	for i := 30;i < 100;i ++ {
-		f.SignStep.Items().Add(strconv.FormatInt(int64(i),10))
+	for i := 20; i < 100; i++ {
+		f.SignStep.Items().Add(strconv.FormatInt(int64(i), 10))
 	}
 
 	exits := CheckFileIsExits("data.json")
@@ -38,9 +38,9 @@ func (f *TForm1) OnFormCreate(sender vcl.IObject) {
 		settingData := ReadSetting()
 		f.SchoolEdit.SetText(settingData.SchoolName)
 		i := 0
-		for k,v := range settingData.QuestionAndAnswer {
+		for k, v := range settingData.QuestionAndAnswer {
 			item := f.TaskListView.Items().Add()
-			item.SetCaption(strconv.FormatInt(int64(i),10))
+			item.SetCaption(strconv.FormatInt(int64(i), 10))
 			i++
 			item.SubItems().Add(k)
 			item.SubItems().Add(v)
@@ -75,7 +75,7 @@ func (f *TForm1) OnGetTaskButtonClick(sender vcl.IObject) {
 	var user User
 	user.UserName = strings.TrimSpace(f.UserEdit.Text())
 	user.PassWord = strings.TrimSpace(f.PassWordEdit.Text())
-	cookie := GetCookie(&user, apis, LoginApi)
+	cookie := GetCookie(&user, apis, LoginApi4)
 	//任务总标题 ---- 签到问题 ---- 回答答案
 	QAndA := GetSignTaskQA(cookie, &apis, &user)
 	if QAndA == nil {
@@ -86,29 +86,26 @@ func (f *TForm1) OnGetTaskButtonClick(sender vcl.IObject) {
 	Q := make(map[string]bool)
 	A := make(map[string]bool)
 
-	for _,v := range QAndA {
-		for k,v2 := range v {
+	for _, v := range QAndA {
+		for k, v2 := range v {
 			Q[k] = true
-			for _,v3 := range v2 {
+			for _, v3 := range v2 {
 				A[v3] = true
 			}
 		}
 	}
 
-	for k,_ := range Q {
+	for k, _ := range Q {
 		item := f.TaskListView.Items().Add()
-		item.SetCaption(strconv.FormatInt(int64(i),10))
+		item.SetCaption(strconv.FormatInt(int64(i), 10))
 		i++
 		item.SubItems().Add(k)
 		item.SubItems().Add("选择回答")
 	}
 
-	for k,_ := range A {
+	for k, _ := range A {
 		f.ComboBox1.Items().Add(k)
 	}
-	fmt.Println(QAndA)
-	fmt.Println(Q)
-	fmt.Println(A)
 	f.UserEdit.SetText("")
 	f.PassWordEdit.SetText("")
 }
@@ -120,7 +117,7 @@ func (f *TForm1) OnApplyButtonClick(sender vcl.IObject) {
 	}
 	schoolName = strings.TrimSpace(f.SchoolEdit.Text())
 	newQA := make(map[string]string)
-	for i := 0;i<int(Form1.TaskListView.Items().Count());i++ {
+	for i := 0; i < int(Form1.TaskListView.Items().Count()); i++ {
 		Q := Form1.TaskListView.Items().Item(int32(i)).SubItems().Strings(0)
 		if Q == "" {
 			vcl.ShowMessage("问题不可为空")
@@ -143,11 +140,11 @@ func (f *TForm1) OnApplyButtonClick(sender vcl.IObject) {
 	if cbApi != "" {
 		runes := []rune(cbApi)
 		protocol := ""
-		if strings.Contains(cbApi,"https://") && len(runes) > 10{
+		if strings.Contains(cbApi, "https://") && len(runes) > 10 {
 			protocol = string(runes[0:8])
-		} else if strings.Contains(cbApi,"http://")  && len(runes) > 10 {
+		} else if strings.Contains(cbApi, "http://") && len(runes) > 10 {
 			protocol = string(runes[0:7])
-		}else {
+		} else {
 			vcl.ShowMessage("非法回调地址")
 			return
 		}
@@ -169,7 +166,7 @@ func (f *TForm1) OnApplyButtonClick(sender vcl.IObject) {
 		vcl.ShowMessage("端口号错误")
 		return
 	}
-	port = ":"+strconv.FormatInt(parseInt,10)
+	port = ":" + strconv.FormatInt(parseInt, 10)
 
 	if f.SignStep.Text() == "" {
 		vcl.ShowMessage("签到间隔最低为30秒")
@@ -179,31 +176,31 @@ func (f *TForm1) OnApplyButtonClick(sender vcl.IObject) {
 	var data SettingData
 
 	if f.MorningMin.Text() != "" && f.MorningHour.Text() != "" {
-		MorningSignTime = "0 "+f.MorningMin.Text()+" "+f.MorningHour.Text()+" * * ?"
+		MorningSignTime = "0 " + f.MorningMin.Text() + " " + f.MorningHour.Text() + " * * ?"
 		data.MorningHour = f.MorningHour.Text()
 		data.MorningMin = f.MorningMin.Text()
 	}
 	if f.NoonMin.Text() != "" && f.NoonHour.Text() != "" {
-		NoonSignTime = "0 "+f.NoonMin.Text()+" "+f.NoonHour.Text()+" * * ?"
+		NoonSignTime = "0 " + f.NoonMin.Text() + " " + f.NoonHour.Text() + " * * ?"
 		data.NoonHour = f.NoonHour.Text()
 		data.NoonMin = f.NoonMin.Text()
 	}
 
 	if f.EveningMin.Text() != "" && f.EveningHour.Text() != "" {
-		EveningSignTime = "0 "+f.EveningMin.Text()+" "+f.EveningHour.Text()+" * * ?"
+		EveningSignTime = "0 " + f.EveningMin.Text() + " " + f.EveningHour.Text() + " * * ?"
 		data.EveningHour = f.EveningHour.Text()
 		data.EveningMin = f.EveningMin.Text()
 	}
 
 	data.SignStep = f.SignStep.Text()
-	SignStepTime,_ = strconv.ParseInt(f.SignStep.Text(),10,64)
+	SignStepTime, _ = strconv.ParseInt(f.SignStep.Text(), 10, 64)
 
 	data.SchoolName = strings.TrimSpace(f.SchoolEdit.Text())
 	data.QuestionAndAnswer = newQA
 	data.CallBackApi = cbApi
 	data.RunPort = strings.TrimSpace(f.PortEdit.Text())
 	marshal, _ := json.Marshal(data)
-	WriteContent("data.json",string(marshal))
+	WriteContent("data.json", string(marshal))
 	go CreateCron()
 	go WebStart(port)
 	vcl.ShowMessage("数据应用成功")

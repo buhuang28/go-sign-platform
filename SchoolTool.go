@@ -11,7 +11,7 @@ import (
 
 //获取学校ID
 func GetSchoolId(schoolName string) string {
-	schoolsData,sucess:= GetRequest(getSchoolListApi,nil,nil)
+	schoolsData, sucess := GetRequest(getSchoolListApi, nil, nil)
 	if sucess {
 		bytes, err := fastjson.ParseBytes(schoolsData)
 		if err != nil {
@@ -24,14 +24,14 @@ func GetSchoolId(schoolName string) string {
 			return ""
 		}
 		data := bytes.GetArray("data")
-		for _,v := range data {
+		for _, v := range data {
 			name := string(v.GetStringBytes("name"))
 			if schoolName == name {
 				id := string(v.GetStringBytes("id"))
 				return id
 			}
 		}
-	}else {
+	} else {
 		logger.Println("网络请求失败")
 	}
 	return ""
@@ -67,25 +67,25 @@ func GetCpdailyApis(schoolName string) map[string]string {
 	}
 	idsUrl := schoolInfo.Data[0].IdsURL
 	ampUrl := schoolInfo.Data[0].AmpURL
-	if strings.Contains(ampUrl,"campusphere") || strings.Contains(ampUrl,"cpdaily") {
+	if strings.Contains(ampUrl, "campusphere") || strings.Contains(ampUrl, "cpdaily") {
 		host := GetNetLocol(ampUrl)
-		resUrl := GetScheme(ampUrl)+"://"+host
-		apis["login-url"] = idsUrl + "/login?service="+GetScheme(resUrl)+`%3A%2F%2F`+host+`%2Fportal%2Flogin`
+		resUrl := GetScheme(ampUrl) + "://" + host
+		apis["login-url"] = idsUrl + "/login?service=" + GetScheme(resUrl) + `%3A%2F%2F` + host + `%2Fportal%2Flogin`
 		apis["host"] = host
 	}
 
 	ampUrl2 := schoolInfo.Data[0].AmpURL2
-	if strings.Contains(ampUrl2,"campusphere") || strings.Contains(ampUrl2,"cpdaily") {
+	if strings.Contains(ampUrl2, "campusphere") || strings.Contains(ampUrl2, "cpdaily") {
 		host := GetNetLocol(ampUrl2)
-		resUrl := GetScheme(ampUrl2)+"://"+host
-		apis["login-url"] = idsUrl + "/login?service="+GetScheme(resUrl)+`%3A%2F%2F`+host+`%2Fportal%2Flogin`
+		resUrl := GetScheme(ampUrl2) + "://" + host
+		apis["login-url"] = idsUrl + "/login?service=" + GetScheme(resUrl) + `%3A%2F%2F` + host + `%2Fportal%2Flogin`
 		apis["host"] = host
 	}
 	return apis
 }
 
 //获取cookie
-func GetCookie(user *User,apis map[string]string,loginApi string) string {
+func GetCookie(user *User, apis map[string]string, loginApi string) string {
 	params := make(map[string]string)
 	params["login_url"] = apis["login-url"]
 	params["needcaptcha_url"] = ""
@@ -93,8 +93,8 @@ func GetCookie(user *User,apis map[string]string,loginApi string) string {
 	params["username"] = user.UserName
 	params["password"] = user.PassWord
 	//cookies := make(map[string]string)
-	sucess,bytes := SendPostForm(loginApi, params)
-	logger.Println("ck返回结果:",string(bytes))
+	sucess, bytes := SendPostForm(loginApi, params)
+	logger.Println("ck返回结果:", string(bytes))
 	if !sucess {
 		logger.Println("Post请求失败")
 		return ""
@@ -107,9 +107,9 @@ func GetCookie(user *User,apis map[string]string,loginApi string) string {
 	}
 
 	ck := string(value.GetStringBytes("cookies"))
-	if ck == "None" || ck == ""{
-		logger.Println(loginApi,"登录失败,切换子墨登录接口重试")
-		sucess,bytes := SendPostForm(zimoApi, params)
+	if ck == "None" || ck == "" {
+		logger.Println(loginApi, "登录失败,切换子墨登录接口重试")
+		sucess, bytes := SendPostForm(zimoApi, params)
 		if !sucess {
 			logger.Println("Post请求失败")
 			return ""
@@ -124,8 +124,8 @@ func GetCookie(user *User,apis map[string]string,loginApi string) string {
 		ck = string(value.GetStringBytes("cookies"))
 		if ck == "None" || ck == "" {
 			msg := string(value.GetStringBytes("msg"))
-			if strings.Contains(msg,"用户名或者密码") {
-				logger.Println("登录信息",msg)
+			if strings.Contains(msg, "用户名或者密码") {
+				logger.Println("登录信息", msg)
 				return "1"
 			}
 			logger.Println("ck等于None,出错")
@@ -136,7 +136,7 @@ func GetCookie(user *User,apis map[string]string,loginApi string) string {
 }
 
 //获取签到任务并且签到
-func GetScoolSignTasksAndSign(cookie string,apis *map[string]string,user *User) (bool,string) {
+func GetScoolSignTasksAndSign(cookie string, apis *map[string]string, user *User) (bool, string) {
 	//得到签到路径的api
 	api := GetSignInfoApi(apis)
 
@@ -146,30 +146,30 @@ func GetScoolSignTasksAndSign(cookie string,apis *map[string]string,user *User) 
 	sucess, bytes := PostRequest(api, cookie, RequestHeader, n)
 	if !sucess {
 		logger.Println("Post网络请求失败")
-		return false,"网络波动，导致签到失败"
+		return false, "网络波动，导致签到失败"
 	}
 	logger.Println(string(bytes))
 	value, err := fastjson.ParseBytes(bytes)
 	if err != nil {
 		logger.Println("签到任务反序列化失败")
-		return false,"无法获取到签到任务"
+		return false, "无法获取到签到任务"
 	}
 	datas := value.Get("datas")
-	logger.Println("全部任务:",datas.String())
+	logger.Println("全部任务:", datas.String())
 	unSignedTasks := datas.GetArray("unSignedTasks")
 	if unSignedTasks == nil || len(unSignedTasks) < 1 {
 		logger.Println("没有需要签到的任务")
-		return false,"没有需要签到的任务"
+		return false, "没有需要签到的任务"
 	}
 
-	for _,v := range unSignedTasks {
+	for _, v := range unSignedTasks {
 		//检查任务是否开始
-		start := CheckTaskStart(string(v.GetStringBytes("rateSignDate")), string(v.GetStringBytes("rateTaskBeginTime")))
-		if !start {
-			continue
-		}
+		//start := CheckTaskStart(string(v.GetStringBytes("rateSignDate")), string(v.GetStringBytes("rateTaskBeginTime")))
+		//if !start {
+		//	continue
+		//}
 
-		logger.Println("签到任务:",v.String())
+		logger.Println("签到任务:", v.String())
 		params := make(map[string]string)
 		params["signInstanceWid"] = string(v.GetStringBytes("signInstanceWid"))
 		params["signWid"] = string(v.GetStringBytes("signWid"))
@@ -180,13 +180,13 @@ func GetScoolSignTasksAndSign(cookie string,apis *map[string]string,user *User) 
 		}
 		form := FuckForm(task, user)
 		sucess, signResult := SubmitForm(cookie, user, form, apis)
-		return sucess,signResult
+		return sucess, signResult
 	}
-	return false,"没有未签到的任务"
+	return false, "没有未签到的任务"
 }
 
 //获取任务详情
-func GetDetailTask(cookie string,params,apis *map[string]string) TaskDeatil {
+func GetDetailTask(cookie string, params, apis *map[string]string) TaskDeatil {
 	api := GetSignTaskDetailApi(apis)
 
 	sucess, bytes := PostRequest(api, cookie, RequestHeader, params)
@@ -206,24 +206,24 @@ func GetDetailTask(cookie string,params,apis *map[string]string) TaskDeatil {
 }
 
 //填写表单
-func FuckForm(task TaskDeatil,user *User) map[string]interface{} {
+func FuckForm(task TaskDeatil, user *User) map[string]interface{} {
 
 	form := make(map[string]interface{})
 	if task.Datas.IsNeedExtra == 1 {
 		extraFields := task.Datas.ExtraField
 		var extraFieldItemValues []map[string]interface{}
-		for _,v := range extraFields {
+		for _, v := range extraFields {
 			//检测问题是否对得上
 			if questions[v.Title] == "" {
-				logger.Println("问题对不上:",v.Title)
+				logger.Println("问题对不上:", v.Title)
 				return nil
 			}
-			for _,v2 := range v.ExtraFieldItems {
+			for _, v2 := range v.ExtraFieldItems {
 				extraFieldItemValue := make(map[string]interface{})
 				if v2.Content == questions[v.Title] {
 					extraFieldItemValue["extraFieldItemValue"] = questions[v.Title]
 					extraFieldItemValue["extraFieldItemWid"] = v2.Wid
-					extraFieldItemValues = append(extraFieldItemValues,extraFieldItemValue)
+					extraFieldItemValues = append(extraFieldItemValues, extraFieldItemValue)
 				}
 
 				if v2.IsOtherItems == 1 {
@@ -251,24 +251,24 @@ func FuckForm(task TaskDeatil,user *User) map[string]interface{} {
 }
 
 //填写表单(带图的)
-func FuckForm2(task TaskDeatil,user *User,cookie string,apis *map[string]string) map[string]interface{} {
+func FuckForm2(task TaskDeatil, user *User, cookie string, apis *map[string]string) map[string]interface{} {
 
 	form := make(map[string]interface{})
 	if task.Datas.IsNeedExtra == 1 {
 		extraFields := task.Datas.ExtraField
 		var extraFieldItemValues []map[string]interface{}
-		for _,v := range extraFields {
+		for _, v := range extraFields {
 			//检测问题是否对得上
 			if questions[v.Title] == "" {
-				logger.Println("问题对不上:",v.Title)
+				logger.Println("问题对不上:", v.Title)
 				return nil
 			}
-			for _,v2 := range v.ExtraFieldItems {
+			for _, v2 := range v.ExtraFieldItems {
 				extraFieldItemValue := make(map[string]interface{})
 				if v2.Content == questions[v.Title] {
 					extraFieldItemValue["extraFieldItemValue"] = questions[v.Title]
 					extraFieldItemValue["extraFieldItemWid"] = v2.Wid
-					extraFieldItemValues = append(extraFieldItemValues,extraFieldItemValue)
+					extraFieldItemValues = append(extraFieldItemValues, extraFieldItemValue)
 				}
 
 				if v2.IsOtherItems == 1 {
@@ -286,7 +286,7 @@ func FuckForm2(task TaskDeatil,user *User,cookie string,apis *map[string]string)
 		//上传图片到今日校园的oss
 		picMax := len(user.FileList)
 		randInt := RandInt64(int64(picMax))
-		fileName := UploadPicture(apis,list[randInt],cookie)
+		fileName := UploadPicture(apis, list[randInt], cookie)
 		pic := GetPic(fileName, cookie, apis)
 		if pic == "" {
 			return nil
@@ -305,7 +305,7 @@ func FuckForm2(task TaskDeatil,user *User,cookie string,apis *map[string]string)
 	return form
 }
 
-func SubmitForm(cookie string,user *User,form map[string]interface{},apis *map[string]string) (bool,string) {
+func SubmitForm(cookie string, user *User, form map[string]interface{}, apis *map[string]string) (bool, string) {
 	extension := make(map[string]string)
 	extension["lon"] = user.Longitude
 	extension["model"] = "Mi 10"
@@ -323,9 +323,9 @@ func SubmitForm(cookie string,user *User,form map[string]interface{},apis *map[s
 
 	//Cpdaily-Extension需要将extension的内容转为json然后使用des cbc PKCS5Padding 加密
 	marshal, _ := json.Marshal(extension)
-	jsonString := strings.ReplaceAll(string(marshal),":",": ")
-	jsonString = strings.ReplaceAll(jsonString,",",", ")
-	encrypt,_ :=  Encrypt([]byte(jsonString),KEY,IV)
+	jsonString := strings.ReplaceAll(string(marshal), ":", ": ")
+	jsonString = strings.ReplaceAll(jsonString, ",", ", ")
+	encrypt, _ := Encrypt([]byte(jsonString), KEY, IV)
 	encoded := base64.StdEncoding.EncodeToString(encrypt)
 
 	header["Cpdaily-Extension"] = encoded
@@ -336,35 +336,34 @@ func SubmitForm(cookie string,user *User,form map[string]interface{},apis *map[s
 	sucess, bytes := PostRequest(GetSubmitSignApi(apis), cookie, header, form)
 	if !sucess {
 		logger.Println("提交任务失败")
-		return false,"提交任务失败"
+		return false, "提交任务失败"
 	}
 	parseBytes, err := fastjson.ParseBytes(bytes)
 	if err != nil {
-		logger.Println("返回json序列化失败:",string(bytes))
-		return false,"签到提交表单返回数据不正确"
+		logger.Println("返回json序列化失败:", string(bytes))
+		return false, "签到提交表单返回数据不正确"
 	}
 	message := string(parseBytes.GetStringBytes("message"))
 	if message == "SUCCESS" {
 		logger.Println("签到成功")
-		return true,"签到成功"
+		return true, "签到成功"
 	}
-	logger.Println("签到失败")
-	return false,"签到失败"
+	return false, "签到失败"
 }
 
-func Sign(u *User,isFailProcess bool,loginApi string) {
-	logger.Println(u.UserName,"开始签到")
+func Sign(u *User, isFailProcess bool, loginApi string) {
+	logger.Println(u.UserName, "开始签到")
 	var cbData CallBackData
 	cbData.UserName = u.UserName
 	apis := GetCpdailyApis(schoolName)
-	cookie := GetCookie(u, apis,loginApi)
+	cookie := GetCookie(u, apis, loginApi)
 	if cookie == "1" {
 		//密码错误的
-		logger.Println(u.UserName,"账号密码错误")
+		logger.Println(u.UserName, "账号密码错误")
 		if callBackApi != "" {
 			cbData.Status = -1
 			cbData.SignResult = "账号密码错误"
-			PostRequest(callBackApi,"",nil,cbData)
+			PostRequest(callBackApi, "", nil, cbData)
 		}
 		return
 	}
@@ -373,14 +372,14 @@ func Sign(u *User,isFailProcess bool,loginApi string) {
 		cbData.Status = -1
 		if isFailProcess {
 			cbData.SignResult = "登录失败,加入续命队列,一段时间后会重新尝试签到"
-			logger.Println(u.UserName,"登录失败,加入续命队列")
-			failSlice = append(failSlice,u)
-		}else {
+			logger.Println(u.UserName, "登录失败,加入续命队列")
+			failSlice = append(failSlice, u)
+		} else {
 			cbData.SignResult = "登录教务失败,可能密码错误或者同一时间登录人数太多，系统拥挤"
-			logger.Println(u.UserName,"登录教务失败,可能密码错误或者同一时间登录人数太多，系统拥挤")
+			logger.Println(u.UserName, "登录教务失败,可能密码错误或者同一时间登录人数太多，系统拥挤")
 		}
 		if callBackApi != "" {
-			PostRequest(callBackApi,"",nil,cbData)
+			PostRequest(callBackApi, "", nil, cbData)
 		}
 		return
 	}
@@ -389,17 +388,17 @@ func Sign(u *User,isFailProcess bool,loginApi string) {
 	cbData.SignResult = signResult
 	if sucess {
 		cbData.Status = 0
-		logger.Println(u.UserName,signResult)
-	}else {
+		logger.Println(u.UserName, signResult)
+	} else {
 		cbData.Status = -1
-		logger.Println(u.UserName,signResult)
+		logger.Println(u.UserName, signResult)
 	}
 	if callBackApi != "" {
-		PostRequest(callBackApi,"",nil,cbData)
+		PostRequest(callBackApi, "", nil, cbData)
 	}
 }
 
-func GetSignTaskQA(cookie string,apis *map[string]string,user *User) map[string]map[string][]string {
+func GetSignTaskQA(cookie string, apis *map[string]string, user *User) map[string]map[string][]string {
 	//得到签到路径的api
 	api := GetSignInfoApi(apis)
 
@@ -418,14 +417,14 @@ func GetSignTaskQA(cookie string,apis *map[string]string,user *User) map[string]
 		return nil
 	}
 	datas := value.Get("datas")
-	logger.Println("全部任务:",datas.String())
+	logger.Println("全部任务:", datas.String())
 	unSignedTasks := datas.GetArray("unSignedTasks")
 	signedTasks := datas.GetArray("signedTasks")
 
 	//问卷 -- 问题 -- []答案
 	tasks := make(map[string]map[string][]string)
 
-	for _,v := range unSignedTasks {
+	for _, v := range unSignedTasks {
 		if tasks[string(v.GetStringBytes("taskName"))] != nil {
 			continue
 		}
@@ -436,17 +435,17 @@ func GetSignTaskQA(cookie string,apis *map[string]string,user *User) map[string]
 		task := GetDetailTask(cookie, &params, apis)
 
 		taskTitleAndAnswer := make(map[string][]string)
-		for _,v := range task.Datas.ExtraField {
+		for _, v := range task.Datas.ExtraField {
 			var answer []string
-			for _,v := range v.ExtraFieldItems {
-				answer = append(answer,v.Content)
+			for _, v := range v.ExtraFieldItems {
+				answer = append(answer, v.Content)
 			}
 			taskTitleAndAnswer[v.Title] = answer
 		}
 		tasks[task.Datas.TaskName] = taskTitleAndAnswer
 	}
 
-	for _,v := range signedTasks {
+	for _, v := range signedTasks {
 		if tasks[string(v.GetStringBytes("taskName"))] != nil {
 			continue
 		}
@@ -457,10 +456,10 @@ func GetSignTaskQA(cookie string,apis *map[string]string,user *User) map[string]
 		task := GetDetailTask(cookie, &params, apis)
 
 		taskTitleAndAnswer := make(map[string][]string)
-		for _,v := range task.Datas.ExtraField {
+		for _, v := range task.Datas.ExtraField {
 			var answer []string
-			for _,v := range v.ExtraFieldItems {
-				answer = append(answer,v.Content)
+			for _, v := range v.ExtraFieldItems {
+				answer = append(answer, v.Content)
 			}
 			taskTitleAndAnswer[v.Title] = answer
 		}
@@ -472,36 +471,35 @@ func GetSignTaskQA(cookie string,apis *map[string]string,user *User) map[string]
 	//logger.Println("json后的任务数据:",string(marshal))
 }
 
-func SignAllUser()  {
+func SignAllUser() {
 	dir := ReadDir("./user")
 	var users []*User
-	for _,v := range dir {
-		user := ReadFile("./user/"+v.Name())
-		users = append(users,user)
+	for _, v := range dir {
+		user := ReadFile("./user/" + v.Name())
+		users = append(users, user)
 	}
 	//每组用户数量
 	step := len(users) / len(loginApiList)
 	if step == 0 {
 		step = 1
 	}
-	for k,v := range loginApiList {
+	for k, v := range loginApiList {
 		lgApi := v
 		var signUserSlice []*User
 		if (k+1)*step > len(users) {
 			continue
 		}
 		if k != len(loginApiList)-1 {
-			signUserSlice = users[k*step:(k+1)*step]
-		}else {
+			signUserSlice = users[k*step : (k+1)*step]
+		} else {
 			signUserSlice = users[k*step:]
 		}
 		go func() {
-			for _,v2 := range signUserSlice {
-				Sign(v2,false,lgApi)
-				//logger.Println(v2,lgApi)
+			for _, v2 := range signUserSlice {
+				Sign(v2, false, lgApi)
 				if SignStepTime != 0 {
 					time.Sleep(time.Duration(SignStepTime) * time.Second)
-				}else {
+				} else {
 					time.Sleep(time.Second * 30)
 				}
 			}
@@ -509,19 +507,19 @@ func SignAllUser()  {
 	}
 }
 
-func SignFallUser(users []*User)  {
+func SignFallUser(users []*User) {
 	step := len(users) / len(loginApiList)
-	for k,v := range loginApiList {
+	for k, v := range loginApiList {
 		lgApi := v
 		var signUserSlice []*User
 		if k != len(loginApiList)-1 {
-			signUserSlice = users[k*step:(k+1)*step]
-		}else {
+			signUserSlice = users[k*step : (k+1)*step]
+		} else {
 			signUserSlice = users[k*step:]
 		}
 		go func() {
-			for _,v2 := range signUserSlice {
-				Sign(v2,false,lgApi)
+			for _, v2 := range signUserSlice {
+				Sign(v2, false, lgApi)
 				time.Sleep(time.Second * 25)
 			}
 		}()
@@ -529,12 +527,12 @@ func SignFallUser(users []*User)  {
 }
 
 //上传图片到今日校园的OSS
-func UploadPicture(apis *map[string]string,imgName,cookie string) string {
-	url := "https://"+(*apis)["host"]+"/wec-counselor-sign-apps/stu/oss/getUploadPolicy"
+func UploadPicture(apis *map[string]string, imgName, cookie string) string {
+	url := "https://" + (*apis)["host"] + "/wec-counselor-sign-apps/stu/oss/getUploadPolicy"
 	params := make(map[string]int)
 	params["fileType"] = 1
 
-	sucess,res := PostRequest(url,cookie,nil,params)
+	sucess, res := PostRequest(url, cookie, nil, params)
 	if !sucess || res == nil {
 		return ""
 	}
@@ -559,13 +557,13 @@ func UploadPicture(apis *map[string]string,imgName,cookie string) string {
 	data["OSSAccessKeyId"] = accessKeyId
 	data["success_action_status"] = "200"
 	data["signature"] = signature
-	PostMultipartImage(&data,&header,imgName,policyHost)
+	PostMultipartImage(&data, &header, imgName, policyHost)
 	return fileName
 }
 
 //获取图片
-func GetPic(fileName,cookie string,apis *map[string]string) string {
-	url := "https://"+(*apis)["host"]+"/wec-counselor-sign-apps/stu/sign/previewAttachment"
+func GetPic(fileName, cookie string, apis *map[string]string) string {
+	url := "https://" + (*apis)["host"] + "/wec-counselor-sign-apps/stu/sign/previewAttachment"
 	data := make(map[string]string)
 	data["ossKey"] = fileName
 	sucess, bytes := PostRequest(url, cookie, nil, data)
@@ -580,7 +578,7 @@ func GetPic(fileName,cookie string,apis *map[string]string) string {
 	return photoUrl
 }
 
-func CreateCron()  {
+func CreateCron() {
 	bc.AddFunc(morningProcessFailSepc, func() {
 		if len(failSlice) > 0 {
 			SignFallUser(failSlice)
@@ -625,9 +623,9 @@ func CreateCron()  {
 	bc.Start()
 }
 
-func CheckTaskStart(date,bgtime string) bool {
+func CheckTaskStart(date, bgtime string) bool {
 	split := strings.Split(date, " ")
-	formatTimeStr := split[0]+" "+bgtime+":00"
-	formatTime,_ := time.Parse("2006-01-02 15:04:05",formatTimeStr)
+	formatTimeStr := split[0] + " " + bgtime + ":00"
+	formatTime, _ := time.Parse("2006-01-02 15:04:05", formatTimeStr)
 	return time.Now().Unix() > formatTime.Unix()
 }
