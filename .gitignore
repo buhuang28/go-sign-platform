@@ -1,0 +1,6 @@
+*.exe
+sign_test.go
+*.dll
+*.log
+.idea
+
