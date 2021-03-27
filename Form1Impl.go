@@ -54,6 +54,15 @@ func (f *TForm1) OnFormCreate(sender vcl.IObject) {
 		f.EveningHour.SetText(settingData.EveningHour)
 		f.EveningMin.SetText(settingData.EveningMin)
 		f.SignStep.SetText(settingData.SignStep)
+
+		for _,v := range settingData.LoginApiList {
+			if v != "" {
+				item := f.LoginApiListView.Items().Add()
+				item.SetCaption("")
+				item.SubItems().Add(v)
+			}
+		}
+
 	}
 	f.ScreenCenter()
 	f.SetCaption(f.TForm.Caption() + "带图片版")
@@ -76,7 +85,7 @@ func (f *TForm1) OnGetTaskButtonClick(sender vcl.IObject) {
 	var user User
 	user.UserName = strings.TrimSpace(f.UserEdit.Text())
 	user.PassWord = strings.TrimSpace(f.PassWordEdit.Text())
-	cookie := GetCookie(&user, apis, LoginApi)
+	cookie := GetCookie(&user, apis, loginApiList[0])
 	if cookie == "" {
 		vcl.ShowMessage("获取不到任务问卷，可能是账号被限制，请切换账号或者自己排查问题")
 		return
@@ -200,6 +209,23 @@ func (f *TForm1) OnApplyButtonClick(sender vcl.IObject) {
 	data.SignStep = f.SignStep.Text()
 	SignStepTime, _ = strconv.ParseInt(f.SignStep.Text(), 10, 64)
 
+	var apiList []string
+
+	for i:= 0 ; i < int(f.LoginApiListView.Items().Count());i++ {
+		api := f.LoginApiListView.Items().Item(int32(i)).SubItems().Strings(0)
+		api = strings.TrimSpace(api)
+		if api != "" {
+			apiList = append(apiList,api)
+		}else {
+			f.LoginApiListView.Items().Delete(int32(i))
+			i--
+			continue
+		}
+	}
+
+	loginApiList = apiList
+
+	data.LoginApiList = apiList
 	data.SchoolName = strings.TrimSpace(f.SchoolEdit.Text())
 	data.QuestionAndAnswer = newQA
 	data.CallBackApi = cbApi
@@ -254,5 +280,63 @@ func (f *TForm1) OnComboBox1Exit(sender vcl.IObject) {
 			f.TaskListView.Items().Item(f.subItemHit.IItem).SubItems().SetStrings(f.subItemHit.ISubItem-1, f.ComboBox1.Text())
 		}
 		//f.TaskListView.Items().Item(f.subItemHit.IItem).SubItems().SetStrings(f.subItemHit.ISubItem-1, f.ComboBox1.Text())
+	}
+}
+
+func (f *TForm1) OnAddLoginApiButtonClick(sender vcl.IObject) {
+	item := f.LoginApiListView.Items().Add()
+	item.SetCaption("")
+	item.SubItems().Add("http://127.0.0.1:8090/api")
+}
+
+
+func (f *TForm1) OnLoginApiListViewClick(sender vcl.IObject) {
+	p := f.LoginApiListView.ScreenToClient(vcl.Mouse.CursorPos())
+	f.subItemHit.Pt.X = p.X
+	f.subItemHit.Pt.Y = p.Y
+	win.ListView_SubItemHitTest(f.LoginApiListView.Handle(), &f.subItemHit)
+	if f.subItemHit.IItem != -1 {
+
+		var r types.TRect
+
+		if f.LoginApiListView.RowSelect() {
+			r = f.LoginApiListView.Selected().DisplayRect(types.DrBounds)
+		} else {
+			win.ListView_GetItemRect(f.LoginApiListView.Handle(), f.subItemHit.IItem, &r, 0)
+		}
+
+		//colWidht := ListView_GetColumnWidth(f.ListView2.Handle(), f.subItemHit.iSubItem)
+		colWidht := f.LoginApiListView.Column(f.subItemHit.ISubItem).Width()
+
+		//var itemPoint types.TPoint
+		//ListView_GetItemPosition(f.ListView2.Handle(), f.subItemHit.iItem, &itemPoint)
+
+
+		var left, i int32
+		// 差2个像素???????????????????????????????????
+		left += 326
+		//r.Top +=
+		for i = 0; i < f.subItemHit.ISubItem; i++ {
+			left += f.LoginApiListView.Column(i).Width() //ListView_GetColumnWidth(f.ListView2.Handle(), i)
+		}
+
+		switch f.subItemHit.ISubItem {
+		case 0: // 不处理
+		case 1:
+			// edit
+			f.LoginApiEdit.SetText(f.LoginApiListView.Items().Item(f.subItemHit.IItem).SubItems().Strings(f.subItemHit.ISubItem - 1))
+			f.LoginApiEdit.SetBounds(left, f.LoginApiListView.Top()+r.Top, colWidht, r.Bottom-r.Top)
+			f.LoginApiEdit.Show()
+			f.LoginApiEdit.SetFocus()
+		}
+	}
+}
+
+
+func (f *TForm1) OnLoginApiEditExit(sender vcl.IObject) {
+
+	f.LoginApiEdit.Hide()
+	if f.subItemHit.IItem != -1 {
+		f.LoginApiListView.Items().Item(f.subItemHit.IItem).SubItems().SetStrings(f.subItemHit.ISubItem-1, f.LoginApiEdit.Text())
 	}
 }

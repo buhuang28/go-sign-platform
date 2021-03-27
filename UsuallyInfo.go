@@ -4,12 +4,8 @@ var (
 	getSchoolListApi = "https://mobile.campushoy.com/v6/config/guest/tenant/list"
 	getSchoolInfoApi = "https://mobile.campushoy.com/v6/config/guest/tenant/info"
 	zimoApi          = "http://www.zimo.wiki:8080/wisedu-unified-login-api-v1.0/api/login"
-	LoginApi         = "http://47.114.146.19:8001/api/login"
-	LoginApi2        = "http://152.136.185.60:8001/api/login"
-	LoginApi3        = "http://106.52.129.73:8001/api/login"
-	LoginApi4        = "http://81.70.164.119:8001/api/login"
-	LoginApi5        = "http://159.75.9.136:8001/api/login"
-	loginApiList = []string{LoginApi, LoginApi2, LoginApi3, LoginApi4, LoginApi5}
+
+	loginApiList []string
 	schoolName      = ""
 	questions       = make(map[string]string)
 	callBackApi     = ""

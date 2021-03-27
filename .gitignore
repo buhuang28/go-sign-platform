@@ -3,4 +3,7 @@ sign_test.go
 *.dll
 *.log
 .idea
+/user
+/img
+/log
 

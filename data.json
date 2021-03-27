@@ -1,0 +1,1 @@
+{"school_name":"深圳信息职业技术学院","question_and_answer":{"您是否存在咳嗽、流鼻涕等感冒症状？":"否","您是否存在咳嗽，流鼻涕等感冒症状？":"否","您的体温是否在37.3°及以上？":"否"},"run_port":"8099","call_back_api":"","morning_hour":"2","morning_min":"0","noon_hour":"","noon_min":"","evening_hour":"","evening_min":"","sign_step":"26","login_api_list":["http://127.0.0.1:8090/api","123"]}

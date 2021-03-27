@@ -100,10 +100,10 @@ func AddUser(context *gin.Context) {
 		context.JSON(-1, result)
 		return
 	}
-	cookie := GetCookie(&u, apis, LoginApi4)
+	cookie := GetCookie(&u, apis, loginApiList[0])
 	if cookie == "" || cookie == "1" {
 		time.Sleep(time.Second * 2)
-		cookie = GetCookie(&u, apis, LoginApi4)
+		cookie = GetCookie(&u, apis, zimoApi)
 		if cookie == "" || cookie == "1" {
 			result.Message = "无法登录，可能学号或者密码错误"
 			context.JSON(-2, result)
@@ -220,7 +220,7 @@ func GetTaskService(context *gin.Context) {
 		context.JSON(-1, "找不到该学校")
 		return
 	}
-	cookie := GetCookie(&u, apis, LoginApi4)
+	cookie := GetCookie(&u, apis, loginApiList[0])
 
 	if cookie == "" {
 		context.JSON(-2, "无法登录，可能用户名或者密码错误")

@@ -239,6 +239,7 @@ type SettingData struct {
 	EveningHour       string            `json:"evening_hour"`
 	EveningMin        string            `json:"evening_min"`
 	SignStep          string            `json:"sign_step"`
+	LoginApiList	  []string 			`json:"login_api_list"`
 }
 
 type CallBackData struct {
