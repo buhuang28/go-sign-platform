@@ -1,7 +1,0 @@
-*.exe
-sign_test.go
-*.dll
-*.log
-.idea
-main.go
-liblcl.dll
