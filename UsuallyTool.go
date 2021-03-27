@@ -7,12 +7,14 @@ import (
 	"crypto/md5"
 	"encoding/hex"
 	"encoding/json"
+	"fmt"
 	"io"
 	"io/ioutil"
 	"log"
 	"math/rand"
 	"mime/multipart"
 	"net/http"
+	"net/textproto"
 	"net/url"
 	"os"
 	"reflect"
@@ -22,21 +24,27 @@ import (
 	"time"
 )
 
-func GetRequest(url string,headerData map[string]string,urlParam map[string]string) ([]byte,bool) {
+func GetRequest(url string, headerData map[string]string, urlParam map[string]string) ([]byte, bool) {
+	defer func() {
+		err := recover()
+		if err != nil {
+			logger.Println(err)
+		}
+	}()
 	if url == "" {
-		return nil,false
+		return nil, false
 	}
-	request,_ := http.NewRequest("GET", url, nil)
-	if headerData != nil{
-		for k,v := range headerData {
+	request, _ := http.NewRequest("GET", url, nil)
+	if headerData != nil {
+		for k, v := range headerData {
 			request.Header.Set(k, v)
 		}
 	}
 	//加入get参数
 	q := request.URL.Query()
 	if urlParam != nil {
-		for k,v := range urlParam{
-			q.Add(k,v)
+		for k, v := range urlParam {
+			q.Add(k, v)
 		}
 	}
 	request.URL.RawQuery = q.Encode()
@@ -47,17 +55,17 @@ func GetRequest(url string,headerData map[string]string,urlParam map[string]stri
 	}
 	resp, err := client.Do(request)
 	if err != nil {
-		return []byte{},false
+		return []byte{}, false
 	}
 
 	data, err2 := ioutil.ReadAll(resp.Body)
 	if err2 != nil {
-		return nil,false
+		return nil, false
 	}
 	defer func() {
 		_ = resp.Body.Close()
 	}()
-	return data,true
+	return data, true
 }
 
 func GetScheme(data string) string {
@@ -71,27 +79,38 @@ func GetNetLocol(data string) string {
 	return i[0]
 }
 
-func PostRequest(url,cookie string,header map[string]string,data interface{}) (bool,[]byte)  {
-	bytesData,_ := json.Marshal(data)
+func PostRequest(url, cookie string, header map[string]string, data interface{}) (bool, []byte) {
+	defer func() {
+		err := recover()
+		if err != nil {
+			logger.Println(err)
+		}
+	}()
+	bytesData, _ := json.Marshal(data)
+	if data == nil {
+		a := "{}"
+		bytesData = []byte(a)
+	}
 	reader := bytes.NewReader(bytesData)
 	request, err := http.NewRequest("POST", url, reader)
 	if err != nil {
-		return false,[]byte{}
+		return false, []byte{}
 	}
 
 	if header != nil {
-		for k,v := range header {
-			request.Header.Set(k,v)
+		for k, v := range header {
+			request.Header.Set(k, v)
 		}
-	}else {
+	} else {
 		request.Header.Set("Content-Type", "application/json")
 	}
+	request.Header.Set("Content-Type", "application/json")
 
-	if cookie != "" {
+	if cookie != "" && cookie != "1" {
 		split := strings.Split(cookie, ";")
-		for _,v := range split {
+		for _, v := range split {
 			i := strings.Split(v, "=")
-			ck := &http.Cookie{Name: i[0],Value: i[1],HttpOnly: true}
+			ck := &http.Cookie{Name: i[0], Value: i[1], HttpOnly: true}
 			request.AddCookie(ck)
 		}
 	}
@@ -104,40 +123,58 @@ func PostRequest(url,cookie string,header map[string]string,data interface{}) (b
 
 	if err != nil {
 		logger.Println("请求失败")
-		return false,[]byte{}
+		return false, []byte{}
 	}
 	respBytes, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
 		logger.Println("数据读取失败")
-		return false,[]byte{}
+		return false, []byte{}
 	}
-	return true,respBytes
+	return true, respBytes
 }
 
-func SendPostForm(api string,params map[string]string) (bool,[]byte) {
+func SendPostForm(api string, params map[string]string) (bool, []byte) {
+	defer func() {
+		err := recover()
+		if err != nil {
+			logger.Println(err)
+		}
+	}()
 	data := make(url.Values)
 	if params != nil {
-		for k,v := range params {
+		for k, v := range params {
 			data[k] = []string{v}
 		}
 	}
 
-	res, err := http.PostForm(api, data)
+	timeout := time.Duration(6 * time.Second)
+	client := http.Client{
+		Timeout: timeout,
+	}
+
+	res, err := client.PostForm(api, data)
 	if err != nil {
 		logger.Println(err.Error())
-		return false,[]byte{}
+		return false, []byte{}
 	}
-	respBytes,err := ioutil.ReadAll(res.Body)
+
+	respBytes, err := ioutil.ReadAll(res.Body)
 	if err != nil || respBytes == nil {
 		logger.Println(err)
-		return false,[]byte{}
+		return false, []byte{}
 	}
 
 	defer res.Body.Close()
-	return true,respBytes
+	return true, respBytes
 }
 
-func Encrypt(origData, key,iv []byte) ([]byte, error) {
+func Encrypt(origData, key, iv []byte) ([]byte, error) {
+	defer func() {
+		err := recover()
+		if err != nil {
+			logger.Println(err)
+		}
+	}()
 	block, err := des.NewCipher(key)
 	if err != nil {
 		return nil, err
@@ -154,22 +191,94 @@ func Encrypt(origData, key,iv []byte) ([]byte, error) {
 }
 
 func PKCS5Padding(ciphertext []byte, blockSize int) []byte {
+	defer func() {
+		err := recover()
+		if err != nil {
+			logger.Println(err)
+		}
+	}()
 	padding := blockSize - len(ciphertext)%blockSize
 	padtext := bytes.Repeat([]byte{byte(padding)}, padding)
 	return append(ciphertext, padtext...)
 }
 
 func GetSignInfoApi(apis *map[string]string) string {
-	return "https://"+(*apis)["host"]+"/wec-counselor-sign-apps/stu/sign/getStuSignInfosInOneDay"
+	return "https://" + (*apis)["host"] + "/wec-counselor-sign-apps/stu/sign/getStuSignInfosInOneDay"
 }
 
 func GetSignTaskDetailApi(apis *map[string]string) string {
-	return "https://"+(*apis)["host"]+"/wec-counselor-sign-apps/stu/sign/detailSignInstance"
+	return "https://" + (*apis)["host"] + "/wec-counselor-sign-apps/stu/sign/detailSignInstance"
 }
 
 func GetSubmitSignApi(apis *map[string]string) string {
-	return "https://"+(*apis)["host"]+"/wec-counselor-sign-apps/stu/sign/submitSign"
+	return "https://" + (*apis)["host"] + "/wec-counselor-sign-apps/stu/sign/submitSign"
 }
+
+//func MD5Sign(user *User, full bool) Result {
+//	var result Result
+//	timeStamp, _ := strconv.ParseInt(user.Time, 10, 64)
+//	nowTime := time.Now().Unix()
+//	if nowTime-timeStamp > 100 {
+//		result.Code = -1
+//		result.Message = "invaid time"
+//		return result
+//	}
+//
+//	sign := ""
+//	fieldNames := GetFieldName(*user)
+//	tgName := GetTagName(*user)
+//	sort.Strings(fieldNames)
+//	sort.Strings(tgName)
+//	checkSign := ""
+//	immutable := reflect.ValueOf(*user)
+//	for k, v := range fieldNames {
+//		if v == "Sign" {
+//			checkSign = immutable.FieldByName(v).String()
+//			continue
+//		}
+//		if v == "AbnormalReason" {
+//			continue
+//		}
+//		value := ""
+//		if v != "FileList" {
+//			value = immutable.FieldByName(v).String()
+//		} else {
+//			continue
+//			//list := user.FileList
+//			//for _,v2 := range list {
+//			//	value += v2+","
+//			//}
+//			//value = strings.Trim(value,",")
+//		}
+//		if value == "" {
+//			if full {
+//				result.Code = -1
+//				result.Message = "invaid " + v
+//				return result
+//			} else {
+//				continue
+//			}
+//		}
+//		sign += tgName[k] + value
+//	}
+//	sign = sessionKey + sign + sessionKey
+//	sign = Md5(sign)
+//	//sign 是自己算的，checkSign是获取结构体的
+//	if checkSign != sign {
+//		result.Code = -2
+//		result.Message = "invaid sign"
+//		return result
+//	}
+//
+//	if sign != "" {
+//		result.Code = 200
+//	} else {
+//		result.Code = -3
+//		result.Message = "invaid sign"
+//		return result
+//	}
+//	return result
+//}
 
 func MD5Sign(user *User,full bool) Result {
 	var result Result
@@ -200,12 +309,11 @@ func MD5Sign(user *User,full bool) Result {
 		if v != "FileList" {
 			value = immutable.FieldByName(v).String()
 		}else {
-			continue
-			//list := user.FileList
-			//for _,v2 := range list {
-			//	value += v2+","
-			//}
-			//value = strings.Trim(value,",")
+			list := user.FileList
+			for _,v2 := range list {
+				value += v2+","
+			}
+			value = strings.Trim(value,",")
 		}
 		if value == "" {
 			if full {
@@ -298,12 +406,12 @@ func CheckUserData(user *User) Result {
 	}
 
 	longitude := user.Longitude
-	if !strings.Contains(longitude,".") {
+	if !strings.Contains(longitude, ".") {
 		result.Message = "错误的经度"
 		result.Code = -6
 		return result
 	}
-	split := strings.Split(longitude,".")
+	split := strings.Split(longitude, ".")
 	prefix, _ := strconv.ParseInt(split[0], 10, 64)
 	if prefix > 180 {
 		result.Message = "错误经度"
@@ -318,7 +426,7 @@ func CheckUserData(user *User) Result {
 	}
 
 	latitude := user.Latitude
-	if !strings.Contains(latitude,"."){
+	if !strings.Contains(latitude, ".") {
 		result.Message = "错误的纬度"
 		result.Code = -7
 		return result
@@ -343,7 +451,7 @@ func CheckUserData(user *User) Result {
 		return result
 	}
 
-	if !strings.Contains(user.MorningTime,":") || !strings.Contains(user.NoonTime,":") || !strings.Contains(user.EveningTime,":")  {
+	if !strings.Contains(user.MorningTime, ":") || !strings.Contains(user.NoonTime, ":") || !strings.Contains(user.EveningTime, ":") {
 		result.Code = -9
 		result.Message = "无效时间"
 		return result
@@ -357,7 +465,7 @@ func CheckUserData(user *User) Result {
 		return result
 	}
 
-	minute,err := strconv.ParseInt(split[1],10,64)
+	minute, err := strconv.ParseInt(split[1], 10, 64)
 	if err != nil || minute > 59 || minute < 0 {
 		result.Code = -9
 		result.Message = "非正常时间数据"
@@ -372,7 +480,7 @@ func CheckUserData(user *User) Result {
 		return result
 	}
 
-	minute,err = strconv.ParseInt(split[1],10,64)
+	minute, err = strconv.ParseInt(split[1], 10, 64)
 	if err != nil || minute > 59 || minute < 0 {
 		result.Code = -9
 		result.Message = "非正常时间数据"
@@ -387,7 +495,7 @@ func CheckUserData(user *User) Result {
 		return result
 	}
 
-	minute,err = strconv.ParseInt(split[1],10,64)
+	minute, err = strconv.ParseInt(split[1], 10, 64)
 	if err != nil || minute > 59 || minute < 0 {
 		result.Code = -9
 		result.Message = "非正常时间数据"
@@ -399,9 +507,9 @@ func CheckUserData(user *User) Result {
 	return result
 }
 
-func WriteContent(fileName,content string) bool {
-	fd,_:=os.OpenFile(fileName,os.O_WRONLY|os.O_TRUNC|os.O_CREATE,0644)
-	buf:=[]byte(content)
+func WriteContent(fileName, content string) bool {
+	fd, _ := os.OpenFile(fileName, os.O_WRONLY|os.O_TRUNC|os.O_CREATE, 0644)
+	buf := []byte(content)
 	_, err := fd.Write(buf)
 	fd.Close()
 	if err == nil {
@@ -417,8 +525,17 @@ func ReadFile(fileName string) *User {
 		return nil
 	}
 	var u User
-	json.Unmarshal(f,&u)
+	json.Unmarshal(f, &u)
 	return &u
+}
+
+func ReadFile2(fileName string) []byte {
+	f, err := ioutil.ReadFile(fileName)
+	if err != nil {
+		logger.Println("read fail", err)
+		return nil
+	}
+	return f
 }
 
 func ReadSetting() *SettingData {
@@ -428,13 +545,13 @@ func ReadSetting() *SettingData {
 		return nil
 	}
 	var data SettingData
-	json.Unmarshal(f,&data)
+	json.Unmarshal(f, &data)
 	return &data
 }
 
 func ReadDir(path string) []os.FileInfo {
-	FileInfo,err := ioutil.ReadDir(path )
-	if err != nil{
+	FileInfo, err := ioutil.ReadDir(path)
+	if err != nil {
 		logger.Println("读取 img 文件夹出错")
 		return nil
 	}
@@ -445,9 +562,9 @@ func ReadDir(path string) []os.FileInfo {
 }
 
 func createLog() {
-	logFileNmae := `./log/`+time.Now().Format("20060102")+".log"
+	logFileNmae := `./log/` + time.Now().Format("20060102") + ".log"
 	logFileAllPath := logFileNmae
-	_,err :=os.Stat(logFileAllPath)
+	_, err := os.Stat(logFileAllPath)
 	exits := CheckFileIsExits(`log`)
 	if !exits {
 		_ = os.Mkdir("./log", os.ModePerm)
@@ -464,11 +581,11 @@ func createLog() {
 	}
 
 	var f *os.File
-	if  err != nil{
-		f, _= os.Create(logFileAllPath)
-	}else{
+	if err != nil {
+		f, _ = os.Create(logFileAllPath)
+	} else {
 		//如果存在文件则 追加log
-		f ,_= os.OpenFile(logFileAllPath,os.O_WRONLY|os.O_CREATE|os.O_APPEND, 0666)
+		f, _ = os.OpenFile(logFileAllPath, os.O_WRONLY|os.O_CREATE|os.O_APPEND, 0666)
 	}
 	logger = log.New(f, "", log.LstdFlags)
 }
@@ -485,7 +602,13 @@ func CheckFileIsExits(fileName string) bool {
 }
 
 //上传图片
-func PostMultipartImage(data,header *map[string]string,imgName,url string)  {
+func PostMultipartImage(data, header *map[string]string, imgName, url string) {
+	defer func() {
+		err := recover()
+		if err != nil {
+			logger.Println(err)
+		}
+	}()
 	var bytedata bytes.Buffer
 	//转换成对应的格式
 	Multipar := multipart.NewWriter(&bytedata)
@@ -512,7 +635,7 @@ func PostMultipartImage(data,header *map[string]string,imgName,url string)  {
 	form.Write([]byte((*data)["signature"]))
 
 	//这里添加图片数据
-	form, err = Multipar.CreateFormFile2("file", "blob","image/jpg")
+	form, err = CreateFormFile2(Multipar,"file", "blob", "image/jpg")
 	if err != nil {
 		return
 	}
@@ -527,10 +650,10 @@ func PostMultipartImage(data,header *map[string]string,imgName,url string)  {
 		return
 	}
 	if header != nil {
-		for k,v := range *header {
-			req.Header.Set(k,v)
+		for k, v := range *header {
+			req.Header.Set(k, v)
 		}
-	}else {
+	} else {
 		req.Header.Set("Content-Type", "application/json")
 	}
 
@@ -541,11 +664,11 @@ func PostMultipartImage(data,header *map[string]string,imgName,url string)  {
 	client := &http.Client{}
 	res, err := client.Do(req)
 	if err != nil {
-		logger.Println("提交错误",err.Error())
+		logger.Println("提交错误", err.Error())
 		return
 	}
 	respBytes, err := ioutil.ReadAll(res.Body)
-	logger.Println("提交返回数据",string(respBytes))
+	logger.Println("提交返回数据", string(respBytes))
 	return
 }
 
@@ -558,3 +681,22 @@ func RandInt64(max int64) int64 {
 	return b
 }
 
+func CreateFormFile2(w *multipart.Writer,fieldname, filename, contentType string) (io.Writer, error) {
+	defer func() {
+		err := recover()
+		if err != nil {
+			logger.Println(err)
+		}
+	}()
+	h := make(textproto	.MIMEHeader)
+	h.Set("Content-Disposition",
+		fmt.Sprintf(`form-data; name="%s"; filename="%s"`, escapeQuotes(fieldname), escapeQuotes(filename)))
+	h.Set("Content-Type", contentType)
+	return w.CreatePart(h)
+}
+
+func escapeQuotes(s string) string {
+	return quoteEscaper.Replace(s)
+}
+
+var quoteEscaper = strings.NewReplacer("\\", "\\\\", `"`, "\\\"")

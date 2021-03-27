@@ -1,4 +1,4 @@
-module github.com/aliez1028/myGoTest
+module jrxy/sign
 
 go 1.15
 

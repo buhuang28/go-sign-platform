@@ -94,18 +94,18 @@ func (schoolInfo *SchoolInfo) IsEmpty() bool {
 }
 
 type User struct {
-	UserName string `json:"user_name"`
-	PassWord string `json:"pass_word"`
-	Longitude string `json:"longitude"`    //当前位置经度
-	Latitude string `json:"latitude"`     //纬度
-	AbnormalReason string `json:"abnormal_reason"`
-	Address string `json:"address"`
-	Time string `json:"time"`	//提交时的时间戳
-	Sign string `json:"sign"`
-	MorningTime string `json:"morning_time"`
-	NoonTime string `json:"noon_time"`
-	EveningTime string `json:"evening_time"`
-	FileList []string `json:"file_list"`
+	UserName       string   `json:"user_name"`
+	PassWord       string   `json:"pass_word"`
+	Longitude      string   `json:"longitude"` //当前位置经度
+	Latitude       string   `json:"latitude"`  //纬度
+	AbnormalReason string   `json:"abnormal_reason"`
+	Address        string   `json:"address"`
+	Time           string   `json:"time"` //提交时的时间戳
+	Sign           string   `json:"sign"`
+	MorningTime    string   `json:"morning_time"`
+	NoonTime       string   `json:"noon_time"`
+	EveningTime    string   `json:"evening_time"`
+	FileList       []string `json:"file_list"`
 	//SignTime string `json:"sign_time"`
 	//SchoolName string `json:"school_name"`
 	//QA map[string]string `json:"qa"`
@@ -222,27 +222,27 @@ func (task *TaskDeatil) IsEmpty() bool {
 }
 
 type Result struct {
-	Code int `json:"code"`
-	Data string `json:"data"`
+	Code    int    `json:"code"`
+	Data    string `json:"data"`
 	Message string `json:"message"`
 }
 
 type SettingData struct {
-	SchoolName string `json:"school_name"`
+	SchoolName        string            `json:"school_name"`
 	QuestionAndAnswer map[string]string `json:"question_and_answer"`
-	RunPort string `json:"run_port"`
-	CallBackApi string `json:"call_back_api"`
-	MorningHour string `json:"morning_hour"`
-	MorningMin string `json:"morning_min"`
-	NoonHour string `json:"noon_hour"`
-	NoonMin string `json:"noon_min"`
-	EveningHour string `json:"evening_hour"`
-	EveningMin string `json:"evening_min"`
-	SignStep string `json:"sign_step"`
+	RunPort           string            `json:"run_port"`
+	CallBackApi       string            `json:"call_back_api"`
+	MorningHour       string            `json:"morning_hour"`
+	MorningMin        string            `json:"morning_min"`
+	NoonHour          string            `json:"noon_hour"`
+	NoonMin           string            `json:"noon_min"`
+	EveningHour       string            `json:"evening_hour"`
+	EveningMin        string            `json:"evening_min"`
+	SignStep          string            `json:"sign_step"`
 }
 
 type CallBackData struct {
-	Status int64 `json:"status"`
-	UserName string `json:"user_name"`
+	Status     int64  `json:"status"`
+	UserName   string `json:"user_name"`
 	SignResult string `json:"result"`
 }

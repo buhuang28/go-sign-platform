@@ -56,6 +56,7 @@ func (f *TForm1) OnFormCreate(sender vcl.IObject) {
 		f.SignStep.SetText(settingData.SignStep)
 	}
 	f.ScreenCenter()
+	f.SetCaption(f.TForm.Caption() + "带图片版")
 }
 
 func (f *TForm1) OnGetTaskButtonClick(sender vcl.IObject) {
@@ -75,7 +76,11 @@ func (f *TForm1) OnGetTaskButtonClick(sender vcl.IObject) {
 	var user User
 	user.UserName = strings.TrimSpace(f.UserEdit.Text())
 	user.PassWord = strings.TrimSpace(f.PassWordEdit.Text())
-	cookie := GetCookie(&user, apis, LoginApi4)
+	cookie := GetCookie(&user, apis, LoginApi)
+	if cookie == "" {
+		vcl.ShowMessage("获取不到任务问卷，可能是账号被限制，请切换账号或者自己排查问题")
+		return
+	}
 	//任务总标题 ---- 签到问题 ---- 回答答案
 	QAndA := GetSignTaskQA(cookie, &apis, &user)
 	if QAndA == nil {
