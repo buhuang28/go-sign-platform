@@ -59,6 +59,13 @@ func GetSchoolInfo(id string) SchoolInfo {
 
 //获取到域名
 func GetCpdailyApis(schoolName string) map[string]string {
+	defer func() {
+		err := recover()
+		if err != nil {
+			logger.Println(err)
+		}
+	}()
+
 	apis := make(map[string]string)
 	id := GetSchoolId(schoolName)
 	if id == "" {
