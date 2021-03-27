@@ -355,11 +355,7 @@ func SubmitForm(cookie string, user *User, form map[string]interface{}, apis *ma
 
 	header["Cpdaily-Extension"] = encoded
 	header["Content-Type"] = "application/json; charset=utf-8"
-<<<<<<< HEAD
 	//header["Accept-Encoding"] = "gzip"
-=======
-// 	header["Accept-Encoding"] = "gzip"
->>>>>>> 20e6ce08c16f1f38ef10e4c106dc802a642e6c17
 	header["Connection"] = "Keep-Alive"
 
 	sucess, bytes := PostRequest(GetSubmitSignApi(apis), cookie, header, form)
