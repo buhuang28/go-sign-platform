@@ -1,5 +1,5 @@
 *.exe
-sign_test.go
+*_test.go
 *.dll
 *.log
 .idea
