@@ -69,6 +69,7 @@ func (f *TForm1) OnFormCreate(sender vcl.IObject) {
 }
 
 func (f *TForm1) OnGetTaskButtonClick(sender vcl.IObject) {
+	f.TaskListView.Clear()
 	if strings.TrimSpace(f.SchoolEdit.Text()) == "" || len(strings.TrimSpace(f.SchoolEdit.Text())) < 4 {
 		vcl.ShowMessage("学校不可为空")
 		return
@@ -85,7 +86,29 @@ func (f *TForm1) OnGetTaskButtonClick(sender vcl.IObject) {
 	var user User
 	user.UserName = strings.TrimSpace(f.UserEdit.Text())
 	user.PassWord = strings.TrimSpace(f.PassWordEdit.Text())
-	cookie := GetCookie(&user, apis, "http://127.0.0.1:8001/api/login")
+
+	tempLoginApi := ""
+
+	for i := 0; i < int(f.LoginApiListView.Items().Count()); i++ {
+		api := f.LoginApiListView.Items().Item(int32(i)).SubItems().Strings(0)
+		api = strings.TrimSpace(api)
+		if api != "" {
+			tempLoginApi = api
+			break
+		}
+	}
+	if tempLoginApi == "" {
+		vcl.ShowMessage("没有获取登录cookie的API")
+		return
+	}
+	cookie := GetCookie(&user, apis, tempLoginApi)
+	header2 := make(map[string]string)
+	header2["Content-Type"] = "application/json"
+	header2["Cookie"] = cookie
+
+	api := GetSignInfoApi(&apis)
+	realCookie, _ := SchoolDayGetLocationCookie(api, header2)
+	cookie = realCookie
 	if cookie == "" {
 		vcl.ShowMessage("获取不到任务问卷，可能是账号被限制，请切换账号或者自己排查问题")
 		return

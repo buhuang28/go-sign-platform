@@ -43,13 +43,84 @@ func Index(context *gin.Context) {
 	context.String(200, htmlfile)
 }
 
+//func AddUser(context *gin.Context) {
+//	defer func() {
+//		err := recover()
+//		if err != nil {
+//			logger.Println(err)
+//		}
+//	}()
+//	data, err := ioutil.ReadAll(context.Request.Body)
+//	if data == nil || err != nil {
+//		context.JSON(200, gin.H{
+//			"code":    -1,
+//			"message": "数据丢失",
+//		})
+//		return
+//	}
+//	var u User
+//	err = json.Unmarshal(data, &u)
+//	if err != nil {
+//		context.JSON(200, Result{Message: "信息序列化失败"})
+//		return
+//	}
+//	Lock.Lock()
+//	isCache := addCache[u.UserName]
+//	Lock.Unlock()
+//	if isCache {
+//		context.JSON(200, Result{Message: "请勿重复提交表单"})
+//		return
+//	}
+//	Lock.Lock()
+//	addCache[u.UserName] = true
+//	Lock.Unlock()
+//
+//	defer func() {
+//		addCache[u.UserName] = false
+//	}()
+//	u.AbnormalReason = "在家"
+//	//进行用户校验
+//	result := CheckUserData(&u)
+//	if result.Code < 0 {
+//		context.JSON(200, result)
+//		return
+//	}
+//	//var result Result
+//	//校验MD5和时间戳
+//	result = MD5Sign(&u, true)
+//	if result.Code < 0 {
+//		context.JSON(200, result)
+//		return
+//	}
+//	marshal, err := json.Marshal(u)
+//	apis := GetCpdailyApis(schoolName)
+//	if apis == nil {
+//		result.Message = "找不到该学校"
+//		context.JSON(-1, result)
+//		return
+//	}
+//	cookie := GetCookie(&u, apis, loginApiList[0])
+//	if cookie == "" || cookie == "1" {
+//		time.Sleep(time.Second * 2)
+//		cookie = GetCookie(&u, apis, backupApi)
+//		if cookie == "" || cookie == "1" {
+//			result.Message = "无法登录，可能学号或者密码错误"
+//			context.JSON(-2, result)
+//			return
+//		}
+//	}
+//	sucess := WriteContent("./user/"+u.UserName+".json", string(marshal))
+//	if sucess && err == nil {
+//		result.Message = "用户添加成功"
+//	} else {
+//		result.Message = "请重试一次"
+//	}
+//	context.JSON(200, result)
+//	return
+//}
+
+//这个好像是带图片的
 func AddUser(context *gin.Context) {
-	defer func() {
-		err := recover()
-		if err != nil {
-			logger.Println(err)
-		}
-	}()
 	data, err := ioutil.ReadAll(context.Request.Body)
 	if data == nil || err != nil {
 		context.JSON(200, gin.H{
@@ -102,7 +173,7 @@ func AddUser(context *gin.Context) {
 	cookie := GetCookie(&u, apis, loginApiList[0])
 	if cookie == "" || cookie == "1" {
 		time.Sleep(time.Second * 2)
-		cookie = GetCookie(&u, apis, backupApi)
+		cookie = GetCookie(&u, apis, loginApiList[0])
 		if cookie == "" || cookie == "1" {
 			result.Message = "无法登录，可能学号或者密码错误"
 			context.JSON(-2, result)
@@ -118,76 +189,6 @@ func AddUser(context *gin.Context) {
 	context.JSON(200, result)
 	return
 }
-
-//func AddUser(context *gin.Context) {
-//	data, err := ioutil.ReadAll(context.Request.Body)
-//	if data == nil || err != nil {
-//		context.JSON(200,gin.H{
-//			"code":-1,
-//			"message":"数据丢失",
-//		})
-//		return
-//	}
-//	var u User
-//	err = json.Unmarshal(data, &u)
-//	if err != nil {
-//		context.JSON(200,Result{Message: "信息序列化失败"})
-//		return
-//	}
-//	Lock.Lock()
-//	isCache := addCache[u.UserName]
-//	Lock.Unlock()
-//	if isCache {
-//		context.JSON(200,Result{Message: "请勿重复提交表单"})
-//		return
-//	}
-//	Lock.Lock()
-//	addCache[u.UserName] = true
-//	Lock.Unlock()
-//
-//	defer func() {
-//		addCache[u.UserName] = false
-//	}()
-//	u.AbnormalReason = "在家"
-//	//进行用户校验
-//	result := CheckUserData(&u)
-//	if result.Code < 0 {
-//		context.JSON(200,result)
-//		return
-//	}
-//	//var result Result
-//	//校验MD5和时间戳
-//	result = MD5Sign(&u,true)
-//	if result.Code < 0 {
-//		context.JSON(200,result)
-//		return
-//	}
-//	marshal, err := json.Marshal(u)
-//	apis := GetCpdailyApis(schoolName)
-//	if apis == nil {
-//		result.Message = "找不到该学校"
-//		context.JSON(-1,result)
-//		return
-//	}
-//	cookie := GetCookie(&u, apis,LoginApi)
-//	if cookie == "" || cookie == "1"{
-//		time.Sleep(time.Second * 2)
-//		cookie = GetCookie(&u, apis,LoginApi)
-//		if cookie == "" || cookie == "1" {
-//			result.Message = "无法登录，可能学号或者密码错误"
-//			context.JSON(-2,result)
-//			return
-//		}
-//	}
-//	sucess := WriteContent("./user/"+u.UserName+".json", string(marshal))
-//	if sucess && err == nil {
-//		result.Message = "用户添加成功"
-//	}else {
-//		result.Message = "请重试一次"
-//	}
-//	context.JSON(200,result)
-//	return
-//}
 
 func GetTaskService(context *gin.Context) {
 	data, err := ioutil.ReadAll(context.Request.Body)

@@ -128,8 +128,12 @@ func GetCookie(user *User, apis map[string]string, loginApi string) (ck string) 
 			ck = ""
 		}
 	}()
+	loginUrl := apis["login-url"]
+	header := make(map[string]string)
+	header["User-Agent"] = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/96.0.4664.45 Safari/537.36"
+	_, realUrl := SchoolDayGetLocationCookie(loginUrl, header)
 	params := make(map[string]string)
-	params["login_url"] = apis["login-url"]
+	params["login_url"] = realUrl
 	params["needcaptcha_url"] = ""
 	params["captcha_url"] = ""
 	params["username"] = user.UserName
@@ -515,7 +519,6 @@ func GetSignTaskQA(cookie string, apis *map[string]string, user *User) map[strin
 
 	//问卷 -- 问题 -- []答案
 	tasks := make(map[string]map[string][]string)
-
 	for _, v := range unSignedTasks {
 		if tasks[string(v.GetStringBytes("taskName"))] != nil {
 			continue
@@ -541,7 +544,6 @@ func GetSignTaskQA(cookie string, apis *map[string]string, user *User) map[strin
 		if tasks[string(v.GetStringBytes("taskName"))] != nil {
 			continue
 		}
-
 		params := make(map[string]string)
 		params["signInstanceWid"] = string(v.GetStringBytes("signInstanceWid"))
 		params["signWid"] = string(v.GetStringBytes("signWid"))
