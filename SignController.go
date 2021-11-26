@@ -29,13 +29,12 @@ func WebStart(addr string) {
 	}
 	gin.SetMode(gin.DebugMode)
 	gin.DefaultWriter = io.MultiWriter(logfile)
-
 	router := gin.Default()
 	router.Use(Use)
 	router.GET("/index", Index)
 	router.POST("/addUser", AddUser)
 	router.POST("/getTask", GetTaskService)
-	router.POST("/addPic",AddPic)
+	router.POST("/addPic", AddPic)
 	router.Run(addr)
 }
 
@@ -103,7 +102,7 @@ func AddUser(context *gin.Context) {
 	cookie := GetCookie(&u, apis, loginApiList[0])
 	if cookie == "" || cookie == "1" {
 		time.Sleep(time.Second * 2)
-		cookie = GetCookie(&u, apis, zimoApi)
+		cookie = GetCookie(&u, apis, backupApi)
 		if cookie == "" || cookie == "1" {
 			result.Message = "无法登录，可能学号或者密码错误"
 			context.JSON(-2, result)

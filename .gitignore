@@ -6,4 +6,4 @@ sign_test.go
 /user
 /img
 /log
-
+*.json

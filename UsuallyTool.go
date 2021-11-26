@@ -7,6 +7,7 @@ import (
 	"crypto/md5"
 	"encoding/hex"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"io/ioutil"
@@ -18,6 +19,7 @@ import (
 	"net/url"
 	"os"
 	"reflect"
+	"regexp"
 	"sort"
 	"strconv"
 	"strings"
@@ -73,10 +75,19 @@ func GetScheme(data string) string {
 	return split[0]
 }
 
+var (
+	hostReg = regexp.MustCompile(`\w{4,5}\:\/\/.*?\/`)
+)
+
 func GetNetLocol(data string) string {
 	split := strings.Split(data, "//")
 	i := strings.Split(split[1], "/")
 	return i[0]
+}
+
+func GetRegData(data string) string {
+	allString := hostReg.FindAllString(data, -1)
+	return allString[0]
 }
 
 func PostRequest(url, cookie string, header map[string]string, data interface{}) (bool, []byte) {
@@ -86,41 +97,59 @@ func PostRequest(url, cookie string, header map[string]string, data interface{})
 			logger.Println(err)
 		}
 	}()
-	bytesData, _ := json.Marshal(data)
-	if data == nil {
-		a := "{}"
-		bytesData = []byte(a)
-	}
-	reader := bytes.NewReader(bytesData)
-	request, err := http.NewRequest("POST", url, reader)
-	if err != nil {
-		return false, []byte{}
-	}
 
-	if header != nil {
-		for k, v := range header {
-			request.Header.Set(k, v)
-		}
-	} else {
-		request.Header.Set("Content-Type", "application/json")
-	}
-	request.Header.Set("Content-Type", "application/json")
+	bytesData := []byte(`{}`)
 
-	if cookie != "" && cookie != "1" {
-		split := strings.Split(cookie, ";")
-		for _, v := range split {
-			i := strings.Split(v, "=")
-			ck := &http.Cookie{Name: i[0], Value: i[1], HttpOnly: true}
-			request.AddCookie(ck)
-		}
+	if data != nil {
+		bytesData, _ = json.Marshal(data)
 	}
 
 	timeout := time.Duration(6 * time.Second)
 	client := http.Client{
 		Timeout: timeout,
 	}
-	resp, err := client.Do(request)
 
+	request, err := http.NewRequest("POST", url, bytes.NewReader(bytesData))
+
+	if err != nil {
+		fmt.Println(err)
+		return false, []byte{}
+	}
+
+	//if cookie != "" && cookie != "1" {
+	//	request.Header.Add("cookie", cookie)
+	//	cookie = strings.Trim(cookie,";")
+	//	split := strings.Split(cookie, ";")
+	//	for _, v := range split {
+	//		v = strings.TrimSpace(v)
+	//		if v == "" {
+	//			continue
+	//		}
+	//		i := strings.Split(v, "=")
+	//		if len(i) > 1 {
+	//			ck := &http.Cookie{Name: i[0], Value: i[1], HttpOnly: true}
+	//			request.AddCookie(ck)
+	//		}
+	//	}
+	//}
+
+	//request.Header.Add("Content-Type", "application/json")
+	//request.Header.Add("Cookie", "iPlanetDirectoryPro=9j6D5f5dk9PiYbaHGSgcMi;JSESSIONID=6EuiY1QW3vQDXmVDbLTOF27wtX1AmzQBbEVfxZIdr2TRQqYHASbm!-1406639286;route=922000a575f0ac992fd468a3d924eed4;CASTGC=TGT-68306-PJMItgoxbPfrgTHbXh3Va2fPIjkbPOpHZfkm5iRtte1RSIpkOG1621927089431-w0vA-cas;HWWAFSESID=6c56610041ec03906f2;HWWAFSESTIME=1621927083406;HWWAFSESID=70af373fec19952ef9;HWWAFSESTIME=1621927088620; MOD_AUTH_CAS=ST-iap:1018615964750600:ST:05f782ca-e8a9-42c0-83bf-a336d272cc37:20210525153409")
+
+	if cookie != "" {
+		request.Header.Add("Cookie", cookie)
+	}
+
+	if len(header) != 0 && cookie != "1" {
+		for k, v := range header {
+			request.Header.Add(k, v)
+		}
+	} else {
+		request.Header.Add("Content-Type", "application/json")
+	}
+
+	resp, err := client.Do(request)
+	defer resp.Body.Close()
 	if err != nil {
 		logger.Println("请求失败")
 		return false, []byte{}
@@ -203,90 +232,24 @@ func PKCS5Padding(ciphertext []byte, blockSize int) []byte {
 }
 
 func GetSignInfoApi(apis *map[string]string) string {
-	return "https://" + (*apis)["host"] + "/wec-counselor-sign-apps/stu/sign/getStuSignInfosInOneDay"
+	return (*apis)["host"] + "wec-counselor-sign-apps/stu/sign/getStuSignInfosInOneDay"
 }
 
 func GetSignTaskDetailApi(apis *map[string]string) string {
-	return "https://" + (*apis)["host"] + "/wec-counselor-sign-apps/stu/sign/detailSignInstance"
+	return (*apis)["host"] + "wec-counselor-sign-apps/stu/sign/detailSignInstance"
 }
 
 func GetSubmitSignApi(apis *map[string]string) string {
-	return "https://" + (*apis)["host"] + "/wec-counselor-sign-apps/stu/sign/submitSign"
+	return (*apis)["host"] + "wec-counselor-sign-apps/stu/sign/submitSign"
 }
 
-//func MD5Sign(user *User, full bool) Result {
-//	var result Result
-//	timeStamp, _ := strconv.ParseInt(user.Time, 10, 64)
-//	nowTime := time.Now().Unix()
-//	if nowTime-timeStamp > 100 {
-//		result.Code = -1
-//		result.Message = "invaid time"
-//		return result
-//	}
-//
-//	sign := ""
-//	fieldNames := GetFieldName(*user)
-//	tgName := GetTagName(*user)
-//	sort.Strings(fieldNames)
-//	sort.Strings(tgName)
-//	checkSign := ""
-//	immutable := reflect.ValueOf(*user)
-//	for k, v := range fieldNames {
-//		if v == "Sign" {
-//			checkSign = immutable.FieldByName(v).String()
-//			continue
-//		}
-//		if v == "AbnormalReason" {
-//			continue
-//		}
-//		value := ""
-//		if v != "FileList" {
-//			value = immutable.FieldByName(v).String()
-//		} else {
-//			continue
-//			//list := user.FileList
-//			//for _,v2 := range list {
-//			//	value += v2+","
-//			//}
-//			//value = strings.Trim(value,",")
-//		}
-//		if value == "" {
-//			if full {
-//				result.Code = -1
-//				result.Message = "invaid " + v
-//				return result
-//			} else {
-//				continue
-//			}
-//		}
-//		sign += tgName[k] + value
-//	}
-//	sign = sessionKey + sign + sessionKey
-//	sign = Md5(sign)
-//	//sign 是自己算的，checkSign是获取结构体的
-//	if checkSign != sign {
-//		result.Code = -2
-//		result.Message = "invaid sign"
-//		return result
-//	}
-//
-//	if sign != "" {
-//		result.Code = 200
-//	} else {
-//		result.Code = -3
-//		result.Message = "invaid sign"
-//		return result
-//	}
-//	return result
-//}
-
-func MD5Sign(user *User,full bool) Result {
+func MD5Sign(user *User, full bool) Result {
 	var result Result
 	timeStamp, _ := strconv.ParseInt(user.Time, 10, 64)
 	nowTime := time.Now().Unix()
-	if nowTime - timeStamp > 100 {
+	if nowTime-timeStamp > 100 {
 		result.Code = -1
-		result.Message = "invaid sign"
+		result.Message = "invaid time"
 		return result
 	}
 
@@ -297,7 +260,7 @@ func MD5Sign(user *User,full bool) Result {
 	sort.Strings(tgName)
 	checkSign := ""
 	immutable := reflect.ValueOf(*user)
-	for k,v := range fieldNames {
+	for k, v := range fieldNames {
 		if v == "Sign" {
 			checkSign = immutable.FieldByName(v).String()
 			continue
@@ -308,25 +271,26 @@ func MD5Sign(user *User,full bool) Result {
 		value := ""
 		if v != "FileList" {
 			value = immutable.FieldByName(v).String()
-		}else {
-			list := user.FileList
-			for _,v2 := range list {
-				value += v2+","
-			}
-			value = strings.Trim(value,",")
+		} else {
+			continue
+			//list := user.FileList
+			//for _,v2 := range list {
+			//	value += v2+","
+			//}
+			//value = strings.Trim(value,",")
 		}
 		if value == "" {
 			if full {
 				result.Code = -1
-				result.Message = "invaid "+v
+				result.Message = "invaid " + v
 				return result
-			}else {
+			} else {
 				continue
 			}
 		}
-		sign +=tgName[k]+value
+		sign += tgName[k] + value
 	}
-	sign = sessionKey+sign+sessionKey
+	sign = sessionKey + sign + sessionKey
 	sign = Md5(sign)
 	//sign 是自己算的，checkSign是获取结构体的
 	if checkSign != sign {
@@ -337,13 +301,78 @@ func MD5Sign(user *User,full bool) Result {
 
 	if sign != "" {
 		result.Code = 200
-	}else {
+	} else {
 		result.Code = -3
 		result.Message = "invaid sign"
 		return result
 	}
 	return result
 }
+
+//func MD5Sign(user *User,full bool) Result {
+//	var result Result
+//	timeStamp, _ := strconv.ParseInt(user.Time, 10, 64)
+//	nowTime := time.Now().Unix()
+//	if nowTime - timeStamp > 100 {
+//		result.Code = -1
+//		result.Message = "invaid sign"
+//		return result
+//	}
+//
+//	sign := ""
+//	fieldNames := GetFieldName(*user)
+//	tgName := GetTagName(*user)
+//	sort.Strings(fieldNames)
+//	sort.Strings(tgName)
+//	checkSign := ""
+//	immutable := reflect.ValueOf(*user)
+//	for k,v := range fieldNames {
+//		if v == "Sign" {
+//			checkSign = immutable.FieldByName(v).String()
+//			continue
+//		}
+//		if v == "AbnormalReason" {
+//			continue
+//		}
+//		value := ""
+//		if v != "FileList" {
+//			value = immutable.FieldByName(v).String()
+//		}else {
+//			list := user.FileList
+//			for _,v2 := range list {
+//				value += v2+","
+//			}
+//			value = strings.Trim(value,",")
+//		}
+//		if value == "" {
+//			if full {
+//				result.Code = -1
+//				result.Message = "invaid "+v
+//				return result
+//			}else {
+//				continue
+//			}
+//		}
+//		sign +=tgName[k]+value
+//	}
+//	sign = sessionKey+sign+sessionKey
+//	sign = Md5(sign)
+//	//sign 是自己算的，checkSign是获取结构体的
+//	if checkSign != sign {
+//		result.Code = -2
+//		result.Message = "invaid sign"
+//		return result
+//	}
+//
+//	if sign != "" {
+//		result.Code = 200
+//	}else {
+//		result.Code = -3
+//		result.Message = "invaid sign"
+//		return result
+//	}
+//	return result
+//}
 
 func Md5(s string) string {
 	h := md5.New()
@@ -635,7 +664,7 @@ func PostMultipartImage(data, header *map[string]string, imgName, url string) {
 	form.Write([]byte((*data)["signature"]))
 
 	//这里添加图片数据
-	form, err = CreateFormFile2(Multipar,"file", "blob", "image/jpg")
+	form, err = CreateFormFile2(Multipar, "file", "blob", "image/jpg")
 	if err != nil {
 		return
 	}
@@ -681,14 +710,14 @@ func RandInt64(max int64) int64 {
 	return b
 }
 
-func CreateFormFile2(w *multipart.Writer,fieldname, filename, contentType string) (io.Writer, error) {
+func CreateFormFile2(w *multipart.Writer, fieldname, filename, contentType string) (io.Writer, error) {
 	defer func() {
 		err := recover()
 		if err != nil {
 			logger.Println(err)
 		}
 	}()
-	h := make(textproto	.MIMEHeader)
+	h := make(textproto.MIMEHeader)
 	h.Set("Content-Disposition",
 		fmt.Sprintf(`form-data; name="%s"; filename="%s"`, escapeQuotes(fieldname), escapeQuotes(filename)))
 	h.Set("Content-Type", contentType)
@@ -700,3 +729,80 @@ func escapeQuotes(s string) string {
 }
 
 var quoteEscaper = strings.NewReplacer("\\", "\\\\", `"`, "\\\"")
+
+//重定向
+func GetLocation(url string, headerData map[string]string) (bool, string) {
+	req, _ := http.NewRequest("GET", url, nil)
+
+	if headerData != nil {
+		for k, v := range headerData {
+			req.Header.Set(k, v)
+		}
+	}
+	timeout := time.Duration(6 * time.Second)
+
+	client := http.Client{
+		Timeout: timeout,
+	}
+	client.CheckRedirect = func(req *http.Request, via []*http.Request) error {
+		return errors.New("Redirect")
+	}
+	response, _ := client.Do(req)
+	defer func() {
+		response.Body.Close()
+	}()
+	if response == nil {
+		return false, ""
+	}
+	location, _ := response.Location()
+	if location == nil || location.String() == "" {
+		header := response.Header
+		location := header.Get("location")
+		if location != "" {
+			return true, location
+		}
+		return false, ""
+	}
+	return true, location.String()
+}
+
+func GetLocation2(url string, headerData map[string]string) (string, string) {
+	req, _ := http.NewRequest("GET", url, nil)
+
+	if headerData != nil {
+		for k, v := range headerData {
+			req.Header.Set(k, v)
+		}
+	}
+	timeout := time.Duration(6 * time.Second)
+
+	client := http.Client{
+		Timeout: timeout,
+	}
+	client.CheckRedirect = func(req *http.Request, via []*http.Request) error {
+		return errors.New("Redirect")
+	}
+	response, _ := client.Do(req)
+	defer func() {
+		response.Body.Close()
+	}()
+	if response == nil {
+		return "", ""
+	}
+	location, _ := response.Location()
+	if location == nil || location.String() == "" {
+		header := response.Header
+		location := header.Get("location")
+		return location, ""
+	}
+	if location.String() != "" {
+		ck := ""
+		cookies := response.Cookies()
+		for _, v := range cookies {
+			ck = ck + ";" + v.Name + "=" + v.Value
+		}
+		ck = strings.Trim(ck, ";")
+		return location.String(), ck
+	}
+	return "", location.String()
+}

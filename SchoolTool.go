@@ -3,9 +3,11 @@ package main
 import (
 	"encoding/base64"
 	"encoding/json"
-	"fmt"
+	"errors"
+	"github.com/robfig/cron"
 	uuid "github.com/satori/go.uuid"
 	"github.com/valyala/fastjson"
+	"net/http"
 	"strings"
 	"time"
 )
@@ -57,6 +59,10 @@ func GetSchoolInfo(id string) SchoolInfo {
 	return schoolInfo
 }
 
+//var (
+//	hostReg = regexp.MustCompile(`\w{4,5}\:\/\/.*?\/`)
+//)
+
 //获取到域名
 func GetCpdailyApis(schoolName string) map[string]string {
 	defer func() {
@@ -78,33 +84,50 @@ func GetCpdailyApis(schoolName string) map[string]string {
 	idsUrl := schoolInfo.Data[0].IdsURL
 	ampUrl := schoolInfo.Data[0].AmpURL
 	if strings.Contains(ampUrl, "campusphere") || strings.Contains(ampUrl, "cpdaily") {
-		host := GetNetLocol(ampUrl)
-		resUrl := GetScheme(ampUrl) + "://" + host
-		apis["login-url"] = idsUrl + "/login?service=" + GetScheme(resUrl) + `%3A%2F%2F` + host + `%2Fportal%2Flogin`
+		host := GetRegData(ampUrl)
 		apis["host"] = host
+
+		sucess, location := GetLocation(ampUrl, nil)
+		if !sucess {
+			time.Sleep(time.Second)
+			sucess, location = GetLocation(ampUrl, nil)
+		}
+		if sucess && location != "" {
+			ampUrl = location
+		}
+		apis["login-url"] = ampUrl
+
+		loginHost := GetRegData(ampUrl)
+		apis["login-host"] = loginHost
+		//loginHost := GetRegData
+		//resUrl := GetScheme(ampUrl) + "://" + host
+		//apis["login-url"] = idsUrl + "/login?service=" + GetScheme(resUrl) + `%3A%2F%2F` + host + `%2Fportal%2Flogin`
+		//apis["host"] = host
 	}
 
 	ampUrl2 := schoolInfo.Data[0].AmpURL2
 	if strings.Contains(ampUrl2, "campusphere") || strings.Contains(ampUrl2, "cpdaily") {
-		host := GetNetLocol(ampUrl2)
+		//host := GetNetLocol(ampUrl2)
+		host := GetRegData(ampUrl2)
+		apis["host"] = host
+		host = GetNetLocol(host)
 		resUrl := GetScheme(ampUrl2) + "://" + host
 		apis["login-url"] = idsUrl + "/login?service=" + GetScheme(resUrl) + `%3A%2F%2F` + host + `%2Fportal%2Flogin`
-		apis["host"] = host
+		apis["login-host"] = GetRegData(apis["login-url"])
 	}
 	return apis
 }
 
 //获取cookie
-func GetCookie(user *User, apis map[string]string, loginApi string) string {
-
+func GetCookie(user *User, apis map[string]string, loginApi string) (ck string) {
+	ck = ""
 	defer func() {
 		err := recover()
 		if err != nil {
-			logger.Println(user.UserName,"出错",err)
+			logger.Println(user.UserName, "出错", err)
+			ck = ""
 		}
 	}()
-
-
 	params := make(map[string]string)
 	params["login_url"] = apis["login-url"]
 	params["needcaptcha_url"] = ""
@@ -115,29 +138,29 @@ func GetCookie(user *User, apis map[string]string, loginApi string) string {
 	sucess, bytes := SendPostForm(loginApi, params)
 	logger.Println(user.UserName, "在", loginApi, "ck返回结果:", string(bytes))
 	if !sucess {
-		logger.Println("GetCookie Post请求失败:",loginApi)
-		return ""
+		logger.Println("GetCookie Post请求失败:", loginApi)
+		return ck
 	}
 
 	value, err := fastjson.ParseBytes(bytes)
 	if err != nil {
 		logger.Println("cookie的json解析失败")
-		return ""
+		return ck
 	}
 
-	ck := string(value.GetStringBytes("cookies"))
+	ck = string(value.GetStringBytes("cookies"))
 	if ck == "None" || ck == "" {
-		logger.Println(user.UserName, "在", loginApi, "登录失败,切换子墨登录接口重试")
-		sucess, bytes := SendPostForm(zimoApi, params)
+		logger.Println(user.UserName, "在", loginApi, "登录失败,切换备用登录接口重试")
+		sucess, bytes := SendPostForm(backupApi, params)
 		if !sucess {
 			logger.Println("Post请求失败")
-			return ""
+			return ck
 		}
 
 		value, err := fastjson.ParseBytes(bytes)
 		if err != nil {
 			logger.Println(user.UserName, " cookie的json解析失败")
-			return ""
+			return ck
 		}
 
 		ck = string(value.GetStringBytes("cookies"))
@@ -148,7 +171,7 @@ func GetCookie(user *User, apis map[string]string, loginApi string) string {
 				return "1"
 			}
 			logger.Println("ck等于None,出错")
-			return ""
+			return ck
 		}
 	}
 	return ck
@@ -164,21 +187,31 @@ func GetScoolSignTasksAndSign(cookie string, apis *map[string]string, user *User
 	}()
 	//得到签到路径的api
 	api := GetSignInfoApi(apis)
-
-	PostRequest(api, cookie, RequestHeader, nil)
 	//这个是为了构造空的json body : {}
-	sucess, bytes := PostRequest(api, cookie, RequestHeader, nil)
+	header := make(map[string]string)
+	//header["User-Agent"] = "Mozilla/5.0 (Linux; U; Android 8.1.0; zh-cn; BLA-AL00 Build/HUAWEIBLA-AL00) AppleWebKit/537.36 (KHTML, like Gecko) Version/4.0 Chrome/57.0.2987.132 MQQBrowser/8.9 Mobile Safari/537.36"
+	header["Content-Type"] = "application/json"
+	header["Accept-Encoding"] = "identity"
+	header["Content-Length"] = "2"
+	header["User-Agent"] = "Mozilla/5.0 (Linux; U; Android 8.1.0; zh-cn; BLA-AL00 Build/HUAWEIBLA-AL00) AppleWebKit/537.36 (KHTML, like Gecko) Version/4.0 Chrome/57.0.2987.132 MQQBrowser/8.9 Mobile Safari/537.36"
+	//PostRequest(api, cookie, RequestHeader, nil)
+	header2 := make(map[string]string)
+	header2["Content-Type"] = "application/json"
+	header2["Cookie"] = cookie
+	realCookie, _ := SchoolDayGetLocationCookie(api, header2)
+	header["Cookie"] = realCookie
+	cookie = realCookie
+	sucess, bytes := PostRequest(api, "", header, nil)
 	if !sucess {
 		logger.Println("GetScoolSignTasksAndSign Post网络请求失败")
 		return false, "网络波动，导致签到失败"
 	}
 	value, err := fastjson.ParseBytes(bytes)
 	if err != nil {
-		logger.Println(user.UserName, "签到任务反序列化失败")
+		logger.Println(user.UserName, "签到任务反序列化失败:", string(bytes))
 		return false, "无法获取到签到任务"
 	}
 	datas := value.Get("datas")
-	fmt.Println(datas.String())
 
 	unSignedTasks := datas.GetArray("unSignedTasks")
 	if unSignedTasks == nil || len(unSignedTasks) < 1 {
@@ -190,14 +223,14 @@ func GetScoolSignTasksAndSign(cookie string, apis *map[string]string, user *User
 		params := make(map[string]string)
 		params["signInstanceWid"] = string(v.GetStringBytes("signInstanceWid"))
 		params["signWid"] = string(v.GetStringBytes("signWid"))
-		task := GetDetailTask(cookie, &params, apis)
+		task := GetDetailTask(realCookie, &params, apis)
 		if task.IsEmpty() {
 			logger.Println(user.UserName, "空任务详情")
 			continue
 		}
 		//form := FuckForm(task, user)
 		form := FuckForm(task, user)
-		SubmitForm(cookie, user, form, apis)
+		SubmitForm(realCookie, user, form, apis)
 	}
 	return false, "没有未签到的任务"
 }
@@ -223,7 +256,6 @@ func GetDetailTask(cookie string, params, apis *map[string]string) TaskDeatil {
 
 //填写表单
 func FuckForm(task TaskDeatil, user *User) map[string]interface{} {
-
 	form := make(map[string]interface{})
 	if task.Datas.IsNeedExtra == 1 {
 		extraFields := task.Datas.ExtraField
@@ -263,6 +295,7 @@ func FuckForm(task TaskDeatil, user *User) map[string]interface{} {
 	form["abnormalReason"] = user.AbnormalReason
 	form["position"] = user.Address
 	form["uaIsCpadaily"] = true
+	form["signVersion"] = "1.0.0"
 	return form
 }
 
@@ -327,10 +360,11 @@ func SubmitForm(cookie string, user *User, form map[string]interface{}, apis *ma
 	defer func() {
 		err := recover()
 		if err != nil {
-			logger.Println(user.UserName,"错误了:",err)
+			logger.Println(user.UserName, "错误了:", err)
 		}
 	}()
 
+	deviceId := uuid.NewV4().String()
 	extension := make(map[string]string)
 	extension["lon"] = user.Longitude
 	extension["model"] = "Mi 10"
@@ -339,7 +373,7 @@ func SubmitForm(cookie string, user *User, form map[string]interface{}, apis *ma
 	extension["userId"] = user.UserName
 	extension["systemName"] = "android"
 	extension["lat"] = user.Latitude
-	extension["deviceId"] = uuid.NewV4().String()
+	extension["deviceId"] = deviceId
 
 	header := make(map[string]string)
 	header["User-Agent"] = "Mozilla/5.0 (Linux; Android 10.0.0; Mi 10 Build/KTU84P) AppleWebKit/537.36 (KHTML, like Gecko) Version/4.0 Chrome/33.0.0.0 Safari/537.36 okhttp/3.12.4"
@@ -358,7 +392,31 @@ func SubmitForm(cookie string, user *User, form map[string]interface{}, apis *ma
 	//header["Accept-Encoding"] = "gzip"
 	header["Connection"] = "Keep-Alive"
 
-	sucess, bytes := PostRequest(GetSubmitSignApi(apis), cookie, header, form)
+	submitData := make(map[string]string)
+	var (
+		appVersion    = "9.0.12"
+		systemName    = "android"
+		model         = "SEA-AL10"
+		calVersion    = "fitstv"
+		systemVersion = "11"
+		version       = "first_v2"
+	)
+	submitData["appVersion"] = appVersion
+	submitData["systemName"] = systemName
+	m, _ := json.Marshal(form)
+	aesEncrypt, _ := AESEncrypt(m)
+	submitData["bodyString"] = aesEncrypt
+	submitData["sign"] = Md5(string(m))
+	submitData["model"] = model
+	submitData["lon"] = user.Longitude
+	submitData["calVersion"] = calVersion
+	submitData["systemVersion"] = systemVersion
+	submitData["deviceId"] = deviceId
+	submitData["userId"] = user.UserName
+	submitData["version"] = version
+	submitData["lat"] = user.Latitude
+
+	sucess, bytes := PostRequest(GetSubmitSignApi(apis), cookie, header, submitData)
 	if !sucess {
 		logger.Println(user.UserName, "提交任务失败")
 		return false, "提交任务失败"
@@ -391,6 +449,7 @@ func Sign(u *User, isFailProcess bool, thisApi string) {
 		return
 	}
 	cookie := GetCookie(u, apis, thisApi)
+	//cookie = ""
 	if cookie == "1" {
 		//密码错误的
 		logger.Println(u.UserName, "账号密码错误")
@@ -436,7 +495,7 @@ func GetSignTaskQA(cookie string, apis *map[string]string, user *User) map[strin
 	//得到签到路径的api
 	api := GetSignInfoApi(apis)
 
-	PostRequest(api, cookie, RequestHeader, nil)
+	//PostRequest(api, cookie, RequestHeader, nil)
 	//这个是为了构造空的json body
 	var n name
 	sucess, bytes := PostRequest(api, cookie, RequestHeader, n)
@@ -612,6 +671,8 @@ func GetPic(fileName, cookie string, apis *map[string]string) string {
 }
 
 func CreateCron() {
+	bc.Stop()
+	bc = cron.New()
 
 	if MorningSignTime != "" {
 		bc.AddFunc(MorningSignTime, SignAllUser)
@@ -643,17 +704,17 @@ func CreateCron() {
 		}
 	})
 
-	bc.AddFunc(morningEndSepc, func() {
-		failSlice = failSlice[0:0]
-	})
-
-	bc.AddFunc(noonEndSpec, func() {
-		failSlice = failSlice[0:0]
-	})
-
-	bc.AddFunc(eveningEndSpec, func() {
-		failSlice = failSlice[0:0]
-	})
+	//bc.AddFunc(morningEndSepc, func() {
+	//	failSlice = failSlice[0:0]
+	//})
+	//
+	//bc.AddFunc(noonEndSpec, func() {
+	//	failSlice = failSlice[0:0]
+	//})
+	//
+	//bc.AddFunc(eveningEndSpec, func() {
+	//	failSlice = failSlice[0:0]
+	//})
 	bc.Start()
 }
 
@@ -662,4 +723,46 @@ func CheckTaskStart(date, bgtime string) bool {
 	formatTimeStr := split[0] + " " + bgtime + ":00"
 	formatTime, _ := time.Parse("2006-01-02 15:04:05", formatTimeStr)
 	return time.Now().Unix() > formatTime.Unix()
+}
+
+func SchoolDayGetLocationCookie(u string, header map[string]string) (string, string) {
+	req, _ := http.NewRequest("GET", u, nil)
+	if header != nil {
+		for k, v := range header {
+			req.Header.Add(k, v)
+		}
+	}
+	timeout := time.Duration(6 * time.Second)
+	client := http.Client{
+		Timeout: timeout,
+	}
+	client.CheckRedirect = func(req *http.Request, via []*http.Request) error {
+		return errors.New("Redirect")
+	}
+	response, _ := client.Do(req)
+	defer func() {
+		response.Body.Close()
+	}()
+	if response == nil {
+		return "", ""
+	}
+	realLc := ""
+	realCk := ""
+	localtion, _ := response.Location()
+	if localtion != nil && localtion.String() != "" {
+		ck := ""
+		cookies := response.Cookies()
+		for _, v := range cookies {
+			ck = ck + ";" + v.Name + "=" + v.Value
+		}
+		ck = strings.Trim(ck, ";")
+		if ck != "" {
+			header["Cookie"] = header["Cookie"] + ";" + ck
+		}
+		realCk, realLc = SchoolDayGetLocationCookie(localtion.String(), header)
+	} else {
+		realLc = response.Request.URL.String()
+		realCk = header["Cookie"]
+	}
+	return realCk, realLc
 }

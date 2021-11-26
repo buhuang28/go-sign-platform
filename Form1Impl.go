@@ -55,7 +55,7 @@ func (f *TForm1) OnFormCreate(sender vcl.IObject) {
 		f.EveningMin.SetText(settingData.EveningMin)
 		f.SignStep.SetText(settingData.SignStep)
 
-		for _,v := range settingData.LoginApiList {
+		for _, v := range settingData.LoginApiList {
 			if v != "" {
 				item := f.LoginApiListView.Items().Add()
 				item.SetCaption("")
@@ -85,7 +85,7 @@ func (f *TForm1) OnGetTaskButtonClick(sender vcl.IObject) {
 	var user User
 	user.UserName = strings.TrimSpace(f.UserEdit.Text())
 	user.PassWord = strings.TrimSpace(f.PassWordEdit.Text())
-	cookie := GetCookie(&user, apis, loginApiList[0])
+	cookie := GetCookie(&user, apis, "http://127.0.0.1:8001/api/login")
 	if cookie == "" {
 		vcl.ShowMessage("获取不到任务问卷，可能是账号被限制，请切换账号或者自己排查问题")
 		return
@@ -211,12 +211,12 @@ func (f *TForm1) OnApplyButtonClick(sender vcl.IObject) {
 
 	var apiList []string
 
-	for i:= 0 ; i < int(f.LoginApiListView.Items().Count());i++ {
+	for i := 0; i < int(f.LoginApiListView.Items().Count()); i++ {
 		api := f.LoginApiListView.Items().Item(int32(i)).SubItems().Strings(0)
 		api = strings.TrimSpace(api)
 		if api != "" {
-			apiList = append(apiList,api)
-		}else {
+			apiList = append(apiList, api)
+		} else {
 			f.LoginApiListView.Items().Delete(int32(i))
 			i--
 			continue
@@ -289,7 +289,6 @@ func (f *TForm1) OnAddLoginApiButtonClick(sender vcl.IObject) {
 	item.SubItems().Add("http://127.0.0.1:8090/api")
 }
 
-
 func (f *TForm1) OnLoginApiListViewClick(sender vcl.IObject) {
 	p := f.LoginApiListView.ScreenToClient(vcl.Mouse.CursorPos())
 	f.subItemHit.Pt.X = p.X
@@ -311,7 +310,6 @@ func (f *TForm1) OnLoginApiListViewClick(sender vcl.IObject) {
 		//var itemPoint types.TPoint
 		//ListView_GetItemPosition(f.ListView2.Handle(), f.subItemHit.iItem, &itemPoint)
 
-
 		var left, i int32
 		// 差2个像素???????????????????????????????????
 		left += 326
@@ -331,7 +329,6 @@ func (f *TForm1) OnLoginApiListViewClick(sender vcl.IObject) {
 		}
 	}
 }
-
 
 func (f *TForm1) OnLoginApiEditExit(sender vcl.IObject) {
 
