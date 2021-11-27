@@ -228,12 +228,13 @@ func GetScoolSignTasksAndSign(cookie string, apis *map[string]string, user *User
 		params["signInstanceWid"] = string(v.GetStringBytes("signInstanceWid"))
 		params["signWid"] = string(v.GetStringBytes("signWid"))
 		task := GetDetailTask(realCookie, &params, apis)
-		if task.IsEmpty() {
-			logger.Println(user.UserName, "空任务详情")
-			continue
-		}
+		//if task.IsEmpty() {
+		//	logger.Println(user.UserName, "空任务详情")
+		//	continue
+		//}
 		//form := FuckForm(task, user)
 		form := FuckForm(task, user)
+		//form := FuckForm2(task, user,cookie,apis)
 		SubmitForm(realCookie, user, form, apis)
 	}
 	return false, "没有未签到的任务"
@@ -258,7 +259,7 @@ func GetDetailTask(cookie string, params, apis *map[string]string) TaskDeatil {
 	return task
 }
 
-//填写表单
+//填写表单 --不需要图片的
 func FuckForm(task TaskDeatil, user *User) map[string]interface{} {
 	form := make(map[string]interface{})
 	if task.Datas.IsNeedExtra == 1 {
@@ -288,9 +289,26 @@ func FuckForm(task TaskDeatil, user *User) map[string]interface{} {
 		form["extraFieldItems"] = extraFieldItemValues
 	}
 
-	if task.Datas.IsPhoto == 1 {
-		form["signPhotoUrl"] = ""
-	}
+	//if task.Datas.IsPhoto == 1 {
+	//	form["signPhotoUrl"] = ""
+	//}
+
+	//	if task.Datas.IsPhoto == 1 {
+	//		list := user.FileList
+	//		//上传图片到今日校园的oss
+	//		picMax := len(user.FileList)
+	//		randInt := RandInt64(int64(picMax))
+	//		imgName := "./img/" + list[randInt]
+	//		fileName := UploadPicture(apis,imgName, cookie)
+	//		fmt.Println(imgName)
+	//		pic := GetPic(fileName, cookie, apis)
+	//		fmt.Println(pic)
+	//		if pic == "" {
+	//			return nil
+	//		}
+	//		//从今日校园oss获取图片
+	//		form["signPhotoUrl"] = pic
+	//	}
 
 	form["signInstanceWid"] = task.Datas.SignInstanceWid
 	form["longitude"] = user.Longitude
@@ -310,6 +328,9 @@ func FuckForm(task TaskDeatil, user *User) map[string]interface{} {
 //		extraFields := task.Datas.ExtraField
 //		var extraFieldItemValues []map[string]interface{}
 //		for _, v := range extraFields {
+//			if v.Title == "" {
+//				continue
+//			}
 //			//检测问题是否对得上
 //			if questions[v.Title] == "" {
 //				logger.Println("问题对不上:", v.Title)
@@ -333,10 +354,10 @@ func FuckForm(task TaskDeatil, user *User) map[string]interface{} {
 //		form["extraFieldItems"] = extraFieldItemValues
 //	}
 //
-//	if task.Datas.IsPhoto == 1 {
+//	if task.Datas.TaskType == "1" {
 //		list := user.FileList
 //		//上传图片到今日校园的oss
-//		picMax := len(user.FileList)
+//		picMax := len(user.FileList) - 1
 //		randInt := RandInt64(int64(picMax))
 //		imgName := "./img/" + list[randInt]
 //		fileName := UploadPicture(apis,imgName, cookie)
@@ -622,11 +643,13 @@ func SignFallUser(users []*User) {
 
 //上传图片到今日校园的OSS
 func UploadPicture(apis *map[string]string, imgName, cookie string) string {
-	url := "https://" + (*apis)["host"] + "/wec-counselor-sign-apps/stu/oss/getUploadPolicy"
+	url := (*apis)["host"] + "wec-counselor-sign-apps/stu/oss/getUploadPolicy"
 	params := make(map[string]int)
 	params["fileType"] = 1
+	h := make(map[string]string)
+	h["content-type"] = "application/json"
 
-	sucess, res := PostRequest(url, cookie, nil, params)
+	sucess, res := PostRequest(url, cookie, h, params)
 	if !sucess || res == nil {
 		return ""
 	}
@@ -657,7 +680,7 @@ func UploadPicture(apis *map[string]string, imgName, cookie string) string {
 
 //获取图片
 func GetPic(fileName, cookie string, apis *map[string]string) string {
-	url := "https://" + (*apis)["host"] + "/wec-counselor-sign-apps/stu/sign/previewAttachment"
+	url := (*apis)["host"] + "wec-counselor-sign-apps/stu/sign/previewAttachment"
 	data := make(map[string]string)
 	data["ossKey"] = fileName
 	sucess, bytes := PostRequest(url, cookie, nil, data)

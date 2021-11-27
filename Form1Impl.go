@@ -168,8 +168,8 @@ func (f *TForm1) OnApplyButtonClick(sender vcl.IObject) {
 		newQA[Q] = A
 	}
 	if len(newQA) == 0 {
-		vcl.ShowMessage("签到问题不可为空")
-		return
+		//vcl.ShowMessage("签到问题不可为空")
+		//return
 	}
 	questions = newQA
 
