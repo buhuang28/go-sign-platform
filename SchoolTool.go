@@ -4,7 +4,6 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	"errors"
-	"fmt"
 	"github.com/robfig/cron"
 	uuid "github.com/satori/go.uuid"
 	"github.com/valyala/fastjson"
@@ -65,73 +64,93 @@ func GetSchoolInfo(id string) SchoolInfo {
 //)
 
 //获取到域名
-func GetCpdailyApis(schoolName string) map[string]string {
-	defer func() {
-		err := recover()
-		if err != nil {
-			fmt.Println(err)
-			logger.Println(err)
-		}
-	}()
+//func GetCpdailyApis(schoolName string) map[string]string {
+//	defer func() {
+//		err := recover()
+//		if err != nil {
+//			fmt.Println(err)
+//			logger.Println(err)
+//		}
+//	}()
+//
+//	apis := make(map[string]string)
+//	id := GetSchoolId(schoolName)
+//	if id == "" {
+//		return nil
+//	}
+//	schoolInfo := GetSchoolInfo(id)
+//	if schoolInfo.IsEmpty() {
+//		return nil
+//	}
+//	//idsUrl := schoolInfo.Data[0].IdsURL
+//	ampUrl := schoolInfo.Data[0].AmpURL
+//	ampUrl2 := schoolInfo.Data[0].AmpURL2
+//
+//	loginUrl := ""
+//	if strings.Contains(ampUrl, "campusphere") {
+//		loginUrl = ampUrl
+//	} else if strings.Contains(ampUrl2, "campusphere") {
+//		loginUrl = ampUrl2
+//	}
+//	loginUrl, ck := GetLocation2(loginUrl, nil)
+//	apis["login-url"] = loginUrl
+//	host := GetRegData(loginUrl)
+//	apis["login-host"] = host
+//	apis["cookie"] = ck
+//	fmt.Println(ck)
+//	//
+//	//if strings.Contains(ampUrl, "campusphere") || strings.Contains(ampUrl, "cpdaily") {
+//	//	host := GetRegData(ampUrl)
+//	//	apis["host"] = host
+//	//
+//	//	sucess, location := GetLocation(ampUrl, nil)
+//	//	if !sucess {
+//	//		time.Sleep(time.Second)
+//	//		sucess, location = GetLocation(ampUrl, nil)
+//	//	}
+//	//	if sucess && location != "" {
+//	//		ampUrl = location
+//	//	}
+//	//	apis["login-url"] = ampUrl
+//	//
+//	//	loginHost := GetRegData(ampUrl)
+//	//	apis["login-host"] = loginHost
+//	//	//loginHost := GetRegData
+//	//	//resUrl := GetScheme(ampUrl) + "://" + host
+//	//	//apis["login-url"] = idsUrl + "/login?service=" + GetScheme(resUrl) + `%3A%2F%2F` + host + `%2Fportal%2Flogin`
+//	//	//apis["host"] = host
+//	//}
+//	//
+//	//if strings.Contains(ampUrl2, "campusphere") || strings.Contains(ampUrl2, "cpdaily") {
+//	//	//host := GetNetLocol(ampUrl2)
+//	//	host := GetRegData(ampUrl2)
+//	//	apis["host"] = host
+//	//	host = GetNetLocol(host)
+//	//	resUrl := GetScheme(ampUrl2) + "://" + host
+//	//	apis["login-url"] = idsUrl + "/login?service=" + GetScheme(resUrl) + `%3A%2F%2F` + host + `%2Fportal%2Flogin`
+//	//	apis["login-host"] = GetRegData(apis["login-url"])
+//	//}
+//	return apis
+//}
 
-	apis := make(map[string]string)
-	id := GetSchoolId(schoolName)
-	if id == "" {
-		return nil
+//获取cookie和host
+func GetCookieAndHost(userName, passWord, schoolName, loginApi string) (bool, string, string) {
+	data := make(map[string]string)
+	data["user_name"] = userName
+	data["pass_word"] = passWord
+	data["school_name"] = schoolName
+	success, bytes := PostRequest(loginApi, "", nil, data)
+	if !success {
+		return false, "", ""
 	}
-	schoolInfo := GetSchoolInfo(id)
-	if schoolInfo.IsEmpty() {
-		return nil
+	parseBytes, err := fastjson.ParseBytes(bytes)
+	if err != nil {
+		return false, "", ""
 	}
-	//idsUrl := schoolInfo.Data[0].IdsURL
-	ampUrl := schoolInfo.Data[0].AmpURL
-	ampUrl2 := schoolInfo.Data[0].AmpURL2
-
-	loginUrl := ""
-	if strings.Contains(ampUrl, "campusphere") {
-		loginUrl = ampUrl
-	} else if strings.Contains(ampUrl2, "campusphere") {
-		loginUrl = ampUrl2
+	if string(parseBytes.GetStringBytes("cookie")) == "" || string(parseBytes.GetStringBytes("host")) == "" {
+		return false, "", ""
 	}
-	loginUrl, ck := GetLocation2(loginUrl, nil)
-	apis["login-url"] = loginUrl
-	host := GetRegData(loginUrl)
-	apis["login-host"] = host
-	apis["cookie"] = ck
-	fmt.Println(ck)
-	//
-	//if strings.Contains(ampUrl, "campusphere") || strings.Contains(ampUrl, "cpdaily") {
-	//	host := GetRegData(ampUrl)
-	//	apis["host"] = host
-	//
-	//	sucess, location := GetLocation(ampUrl, nil)
-	//	if !sucess {
-	//		time.Sleep(time.Second)
-	//		sucess, location = GetLocation(ampUrl, nil)
-	//	}
-	//	if sucess && location != "" {
-	//		ampUrl = location
-	//	}
-	//	apis["login-url"] = ampUrl
-	//
-	//	loginHost := GetRegData(ampUrl)
-	//	apis["login-host"] = loginHost
-	//	//loginHost := GetRegData
-	//	//resUrl := GetScheme(ampUrl) + "://" + host
-	//	//apis["login-url"] = idsUrl + "/login?service=" + GetScheme(resUrl) + `%3A%2F%2F` + host + `%2Fportal%2Flogin`
-	//	//apis["host"] = host
-	//}
-	//
-	//if strings.Contains(ampUrl2, "campusphere") || strings.Contains(ampUrl2, "cpdaily") {
-	//	//host := GetNetLocol(ampUrl2)
-	//	host := GetRegData(ampUrl2)
-	//	apis["host"] = host
-	//	host = GetNetLocol(host)
-	//	resUrl := GetScheme(ampUrl2) + "://" + host
-	//	apis["login-url"] = idsUrl + "/login?service=" + GetScheme(resUrl) + `%3A%2F%2F` + host + `%2Fportal%2Flogin`
-	//	apis["login-host"] = GetRegData(apis["login-url"])
-	//}
-	return apis
+	return true, string(parseBytes.GetStringBytes("cookie")), string(parseBytes.GetStringBytes("host"))
 }
 
 //获取cookie
@@ -199,7 +218,7 @@ func GetCookie(user *User, apis map[string]string, loginApi string) (ck string) 
 }
 
 //获取签到任务并且签到
-func GetScoolSignTasksAndSign(cookie string, apis *map[string]string, user *User) (bool, string) {
+func GetScoolSignTasksAndSign(cookie, host string, user *User) (bool, string) {
 	defer func() {
 		err := recover()
 		if err != nil {
@@ -207,7 +226,7 @@ func GetScoolSignTasksAndSign(cookie string, apis *map[string]string, user *User
 		}
 	}()
 	//得到签到路径的api
-	api := GetSignInfoApi(apis)
+	api := GetSignInfoApi(host)
 	//这个是为了构造空的json body : {}
 	header := make(map[string]string)
 	//header["User-Agent"] = "Mozilla/5.0 (Linux; U; Android 8.1.0; zh-cn; BLA-AL00 Build/HUAWEIBLA-AL00) AppleWebKit/537.36 (KHTML, like Gecko) Version/4.0 Chrome/57.0.2987.132 MQQBrowser/8.9 Mobile Safari/537.36"
@@ -222,7 +241,8 @@ func GetScoolSignTasksAndSign(cookie string, apis *map[string]string, user *User
 	realCookie, _ := SchoolDayGetLocationCookie(api, header2)
 	header["Cookie"] = realCookie
 	cookie = realCookie
-	sucess, bytes := PostRequest(api, "", header, nil)
+
+	sucess, bytes := PostRequest(api, cookie, header, nil)
 	if !sucess {
 		logger.Println("GetScoolSignTasksAndSign Post网络请求失败")
 		return false, "网络波动，导致签到失败"
@@ -244,7 +264,7 @@ func GetScoolSignTasksAndSign(cookie string, apis *map[string]string, user *User
 		params := make(map[string]string)
 		params["signInstanceWid"] = string(v.GetStringBytes("signInstanceWid"))
 		params["signWid"] = string(v.GetStringBytes("signWid"))
-		task := GetDetailTask(realCookie, &params, apis)
+		task := GetDetailTask(realCookie, &params, host)
 		//if task.IsEmpty() {
 		//	logger.Println(user.UserName, "空任务详情")
 		//	continue
@@ -252,14 +272,14 @@ func GetScoolSignTasksAndSign(cookie string, apis *map[string]string, user *User
 		//form := FuckForm(task, user)
 		form := FuckForm(task, user)
 		//form := FuckForm2(task, user,cookie,apis)
-		SubmitForm(realCookie, user, form, apis)
+		SubmitForm(realCookie, user, form, host)
 	}
 	return false, "没有未签到的任务"
 }
 
 //获取任务详情
-func GetDetailTask(cookie string, params, apis *map[string]string) TaskDeatil {
-	api := GetSignTaskDetailApi(apis)
+func GetDetailTask(cookie string, params *map[string]string, host string) TaskDeatil {
+	api := GetSignTaskDetailApi(host)
 
 	sucess, bytes := PostRequest(api, cookie, RequestHeader, params)
 
@@ -398,7 +418,7 @@ func FuckForm(task TaskDeatil, user *User) map[string]interface{} {
 //	return form
 //}
 
-func SubmitForm(cookie string, user *User, form map[string]interface{}, apis *map[string]string) (bool, string) {
+func SubmitForm(cookie string, user *User, form map[string]interface{}, host string) (bool, string) {
 	defer func() {
 		err := recover()
 		if err != nil {
@@ -458,7 +478,7 @@ func SubmitForm(cookie string, user *User, form map[string]interface{}, apis *ma
 	submitData["version"] = version
 	submitData["lat"] = user.Latitude
 
-	sucess, bytes := PostRequest(GetSubmitSignApi(apis), cookie, header, submitData)
+	sucess, bytes := PostRequest(GetSubmitSignApi(host), cookie, header, submitData)
 	if !sucess {
 		logger.Println(user.UserName, "提交任务失败")
 		return false, "提交任务失败"
@@ -486,24 +506,25 @@ func Sign(u *User, isFailProcess bool, thisApi string) {
 	logger.Println(u.UserName, "开始签到", thisApi)
 	var cbData CallBackData
 	cbData.UserName = u.UserName
-	apis := GetCpdailyApis(schoolName)
-	if apis == nil {
-		return
-	}
-	cookie := GetCookie(u, apis, thisApi)
+	//apis := GetCpdailyApis(schoolName)
+	//if apis == nil {
+	//	return
+	//}
+	success, cookie, host := GetCookieAndHost(u.UserName, u.PassWord, schoolName, thisApi)
 	//cookie = ""
-	if cookie == "1" {
-		//密码错误的
-		logger.Println(u.UserName, "账号密码错误")
-		if callBackApi != "" {
-			cbData.Status = -1
-			cbData.SignResult = "账号密码错误"
-			PostRequest(callBackApi, "", nil, cbData)
-		}
-		return
-	}
+	//if cookie == "1" {
+	//	//密码错误的
+	//	logger.Println(u.UserName, "账号密码错误")
+	//	if callBackApi != "" {
+	//		cbData.Status = -1
+	//		cbData.SignResult = "账号密码错误"
+	//		PostRequest(callBackApi, "", nil, cbData)
+	//	}
+	//	return
+	//}
 
-	if cookie == "" {
+	if !success || cookie == "" {
+		logger.Println(u.UserName, "可能账号密码错误")
 		cbData.Status = -1
 		if isFailProcess {
 			cbData.SignResult = "登录失败,加入续命队列,一段时间后会重新尝试签到"
@@ -519,7 +540,7 @@ func Sign(u *User, isFailProcess bool, thisApi string) {
 		return
 	}
 
-	sucess, signResult := GetScoolSignTasksAndSign(cookie, &apis, u)
+	sucess, signResult := GetScoolSignTasksAndSign(cookie, host, u)
 	cbData.SignResult = signResult
 	if sucess {
 		cbData.Status = 0
@@ -533,9 +554,9 @@ func Sign(u *User, isFailProcess bool, thisApi string) {
 	}
 }
 
-func GetSignTaskQA(cookie string, apis *map[string]string, user *User) map[string]map[string][]string {
+func GetSignTaskQA(cookie, host string, user *User) map[string]map[string][]string {
 	//得到签到路径的api
-	api := GetSignInfoApi(apis)
+	api := GetSignInfoApi(host)
 
 	//PostRequest(api, cookie, RequestHeader, nil)
 	//这个是为了构造空的json body
@@ -565,7 +586,7 @@ func GetSignTaskQA(cookie string, apis *map[string]string, user *User) map[strin
 		params := make(map[string]string)
 		params["signInstanceWid"] = string(v.GetStringBytes("signInstanceWid"))
 		params["signWid"] = string(v.GetStringBytes("signWid"))
-		task := GetDetailTask(cookie, &params, apis)
+		task := GetDetailTask(cookie, &params, host)
 
 		taskTitleAndAnswer := make(map[string][]string)
 		for _, v := range task.Datas.ExtraField {
@@ -585,7 +606,7 @@ func GetSignTaskQA(cookie string, apis *map[string]string, user *User) map[strin
 		params := make(map[string]string)
 		params["signInstanceWid"] = string(v.GetStringBytes("signInstanceWid"))
 		params["signWid"] = string(v.GetStringBytes("signWid"))
-		task := GetDetailTask(cookie, &params, apis)
+		task := GetDetailTask(cookie, &params, host)
 
 		taskTitleAndAnswer := make(map[string][]string)
 		for _, v := range task.Datas.ExtraField {

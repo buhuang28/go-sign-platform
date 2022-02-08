@@ -78,11 +78,7 @@ func (f *TForm1) OnGetTaskButtonClick(sender vcl.IObject) {
 		vcl.ShowMessage("学号密码不可为空")
 		return
 	}
-	apis := GetCpdailyApis(strings.TrimSpace(f.SchoolEdit.Text()))
-	if apis == nil {
-		vcl.ShowMessage("该学校未加入今日校园，或者学校名字错误")
-		return
-	}
+	tempSchoolName := strings.TrimSpace(f.SchoolEdit.Text())
 	var user User
 	user.UserName = strings.TrimSpace(f.UserEdit.Text())
 	user.PassWord = strings.TrimSpace(f.PassWordEdit.Text())
@@ -101,12 +97,17 @@ func (f *TForm1) OnGetTaskButtonClick(sender vcl.IObject) {
 		vcl.ShowMessage("没有获取登录cookie的API")
 		return
 	}
-	cookie := GetCookie(&user, apis, tempLoginApi)
+	//cookie := GetCookie(&user, apis, tempLoginApi)
+	success, cookie, host := GetCookieAndHost(user.UserName, user.PassWord, tempSchoolName, tempLoginApi)
+	if !success {
+		vcl.ShowMessage("获取cookie失败了")
+		return
+	}
 	header2 := make(map[string]string)
 	header2["Content-Type"] = "application/json"
 	header2["Cookie"] = cookie
 
-	api := GetSignInfoApi(&apis)
+	api := GetSignInfoApi(host)
 	realCookie, _ := SchoolDayGetLocationCookie(api, header2)
 	cookie = realCookie
 	if cookie == "" {
@@ -114,7 +115,7 @@ func (f *TForm1) OnGetTaskButtonClick(sender vcl.IObject) {
 		return
 	}
 	//任务总标题 ---- 签到问题 ---- 回答答案
-	QAndA := GetSignTaskQA(cookie, &apis, &user)
+	QAndA := GetSignTaskQA(cookie, host, &user)
 	if QAndA == nil {
 		vcl.ShowMessage("获取不到任务问卷，可能是账号被限制，请切换账号或者自己排查问题")
 		return

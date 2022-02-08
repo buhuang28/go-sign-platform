@@ -93,17 +93,17 @@ func AddUser(context *gin.Context) {
 		return
 	}
 	marshal, err := json.Marshal(u)
-	apis := GetCpdailyApis(schoolName)
-	if apis == nil {
-		result.Message = "找不到该学校"
-		context.JSON(-1, result)
-		return
-	}
-	cookie := GetCookie(&u, apis, loginApiList[0])
-	if cookie == "" || cookie == "1" {
+	//apis := GetCpdailyApis(schoolName)
+	//if apis == nil {
+	//	result.Message = "找不到该学校"
+	//	context.JSON(-1, result)
+	//	return
+	//}
+	success, cookie, _ := GetCookieAndHost(u.UserName, u.PassWord, schoolName, loginApiList[0])
+	if !success || cookie == "" || cookie == "1" {
 		time.Sleep(time.Second * 2)
-		cookie = GetCookie(&u, apis, backupApi)
-		if cookie == "" || cookie == "1" {
+		success, cookie, _ = GetCookieAndHost(u.UserName, u.PassWord, schoolName, loginApiList[0])
+		if !success || cookie == "" || cookie == "1" {
 			result.Message = "无法登录，可能学号或者密码错误"
 			context.JSON(-2, result)
 			return
@@ -216,18 +216,17 @@ func GetTaskService(context *gin.Context) {
 		return
 	}
 
-	apis := GetCpdailyApis(schoolName)
-	if apis == nil {
-		context.JSON(-1, "找不到该学校")
-		return
-	}
-	cookie := GetCookie(&u, apis, loginApiList[0])
-
-	if cookie == "" {
+	//apis := GetCpdailyApis(schoolName)
+	//if apis == nil {
+	//	context.JSON(-1, "找不到该学校")
+	//	return
+	//}
+	success, cookie, host := GetCookieAndHost(u.UserName, u.PassWord, schoolName, loginApiList[0])
+	if !success || cookie == "" {
 		context.JSON(-2, "无法登录，可能用户名或者密码错误")
 		return
 	}
-	signTaskQA := GetSignTaskQA(cookie, &apis, &u)
+	signTaskQA := GetSignTaskQA(cookie, host, &u)
 	if signTaskQA == nil {
 		context.JSON(-3, "找不到任务")
 		return

@@ -4,7 +4,7 @@ var (
 	getSchoolListApi = "https://mobile.campushoy.com/v6/config/guest/tenant/list"
 	getSchoolInfoApi = "https://mobile.campushoy.com/v6/config/guest/tenant/info"
 	//backupApi          = "http://www.zimo.wiki:8080/wisedu-unified-login-api-v1.0/api/login"
-	backupApi = "http://127.0.0.1:8001/api/login"
+	backupApi = "http://127.0.0.1:8001/login"
 
 	loginApiList    []string
 	schoolName      = ""

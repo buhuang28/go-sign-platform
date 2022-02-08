@@ -295,16 +295,16 @@ func PKCS5Padding(ciphertext []byte, blockSize int) []byte {
 	return append(ciphertext, padtext...)
 }
 
-func GetSignInfoApi(apis *map[string]string) string {
-	return (*apis)["host"] + "wec-counselor-sign-apps/stu/sign/getStuSignInfosInOneDay"
+func GetSignInfoApi(host string) string {
+	return host + "wec-counselor-sign-apps/stu/sign/getStuSignInfosInOneDay"
 }
 
-func GetSignTaskDetailApi(apis *map[string]string) string {
-	return (*apis)["host"] + "wec-counselor-sign-apps/stu/sign/detailSignInstance"
+func GetSignTaskDetailApi(host string) string {
+	return host + "wec-counselor-sign-apps/stu/sign/detailSignInstance"
 }
 
-func GetSubmitSignApi(apis *map[string]string) string {
-	return (*apis)["host"] + "wec-counselor-sign-apps/stu/sign/submitSign"
+func GetSubmitSignApi(host string) string {
+	return host + "wec-counselor-sign-apps/stu/sign/submitSign"
 }
 
 func MD5Sign(user *User, full bool) Result {
