@@ -5,7 +5,7 @@
 ![Image text](https://github.com/buhuang28/go-sign-platform/blob/main/QQ%E5%9B%BE%E7%89%8720210112161446.png)
 应该是适配的很多学校的签到了，如果签到需要上传图片，请把FuckForm函数替换成SchoolTool.go中的FuckForm2。另外HTML需要加上前端上传图片的代码。
 
-需要配合 https://github.com/buhuang28/go-sign-platform 获取cookie去获取签到任务、提交签到信息
+需要配合 https://github.com/buhuang28/go-jrxy-login 获取cookie去获取签到任务、提交签到信息
 
 GUI使用govcl绘制：https://github.com/ying32/govcl
 
