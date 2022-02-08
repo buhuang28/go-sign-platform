@@ -7,7 +7,6 @@ import (
 	"crypto/md5"
 	"encoding/hex"
 	"encoding/json"
-	"errors"
 	"fmt"
 	"io"
 	"io/ioutil"
@@ -26,22 +25,23 @@ import (
 	"time"
 )
 
-func GetRequest(url string, headerData map[string]string, urlParam map[string]string) ([]byte, bool) {
+func GetRequest(u string, headerData map[string]string, urlParam map[string]string) ([]byte, bool) {
 	defer func() {
 		err := recover()
 		if err != nil {
 			logger.Println(err)
 		}
 	}()
-	if url == "" {
+	if u == "" {
 		return nil, false
 	}
-	request, _ := http.NewRequest("GET", url, nil)
+	request, _ := http.NewRequest("GET", u, nil)
 	if headerData != nil {
 		for k, v := range headerData {
 			request.Header.Set(k, v)
 		}
 	}
+
 	//加入get参数
 	q := request.URL.Query()
 	if urlParam != nil {
@@ -52,7 +52,13 @@ func GetRequest(url string, headerData map[string]string, urlParam map[string]st
 	request.URL.RawQuery = q.Encode()
 
 	timeout := time.Duration(6 * time.Second)
+	//urli := url.URL{}
+	//urlproxy, _ := urli.Parse("http://127.0.0.1:8080")
+	//fmt.Println(urlproxy)
 	client := http.Client{
+		//Transport: &http.Transport{
+		//	Proxy: http.ProxyURL(urlproxy),
+		//},
 		Timeout: timeout,
 	}
 	resp, err := client.Do(request)
@@ -68,6 +74,64 @@ func GetRequest(url string, headerData map[string]string, urlParam map[string]st
 		_ = resp.Body.Close()
 	}()
 	return data, true
+}
+
+func GetRqeustCookie(u string, headerData map[string]string, urlParam map[string]string) (data []byte, cookie string) {
+	defer func() {
+		err := recover()
+		if err != nil {
+			logger.Println(err)
+		}
+	}()
+	if u == "" {
+		return nil, ""
+	}
+	request, _ := http.NewRequest("GET", u, nil)
+	if headerData != nil {
+		for k, v := range headerData {
+			request.Header.Set(k, v)
+		}
+	}
+
+	//加入get参数
+	q := request.URL.Query()
+	if urlParam != nil {
+		for k, v := range urlParam {
+			q.Add(k, v)
+		}
+	}
+	request.URL.RawQuery = q.Encode()
+
+	timeout := time.Duration(6 * time.Second)
+	client := http.Client{
+		Timeout: timeout,
+	}
+	resp, err := client.Do(request)
+	if err != nil {
+		return nil, ""
+	}
+
+	data, err2 := ioutil.ReadAll(resp.Body)
+	if err2 != nil {
+		return nil, ""
+	}
+	defer func() {
+		if resp != nil && resp.Body != nil {
+			_ = resp.Body.Close()
+		}
+	}()
+	ck := ""
+	cookies := resp.Cookies()
+	if len(cookies) == 0 {
+		ck = headerData["Cookie"]
+	} else {
+		for _, v := range cookies {
+			ck = ck + ";" + v.Name + "=" + v.Value
+		}
+	}
+
+	ck = strings.Trim(ck, ";")
+	return data, ck
 }
 
 func GetScheme(data string) string {
@@ -744,9 +808,9 @@ func GetLocation(url string, headerData map[string]string) (bool, string) {
 	client := http.Client{
 		Timeout: timeout,
 	}
-	client.CheckRedirect = func(req *http.Request, via []*http.Request) error {
-		return errors.New("Redirect")
-	}
+	//client.CheckRedirect = func(req *http.Request, via []*http.Request) error {
+	//	return errors.New("Redirect")
+	//}
 	response, _ := client.Do(req)
 	defer func() {
 		response.Body.Close()
@@ -768,19 +832,14 @@ func GetLocation(url string, headerData map[string]string) (bool, string) {
 
 func GetLocation2(url string, headerData map[string]string) (string, string) {
 	req, _ := http.NewRequest("GET", url, nil)
-
 	if headerData != nil {
 		for k, v := range headerData {
 			req.Header.Set(k, v)
 		}
 	}
 	timeout := time.Duration(6 * time.Second)
-
 	client := http.Client{
 		Timeout: timeout,
-	}
-	client.CheckRedirect = func(req *http.Request, via []*http.Request) error {
-		return errors.New("Redirect")
 	}
 	response, _ := client.Do(req)
 	defer func() {
@@ -789,20 +848,12 @@ func GetLocation2(url string, headerData map[string]string) (string, string) {
 	if response == nil {
 		return "", ""
 	}
-	location, _ := response.Location()
-	if location == nil || location.String() == "" {
-		header := response.Header
-		location := header.Get("location")
-		return location, ""
+	location := response.Request.URL.String()
+	ck := ""
+	cookies := response.Cookies()
+	for _, v := range cookies {
+		ck = ck + ";" + v.Name + "=" + v.Value
 	}
-	if location.String() != "" {
-		ck := ""
-		cookies := response.Cookies()
-		for _, v := range cookies {
-			ck = ck + ";" + v.Name + "=" + v.Value
-		}
-		ck = strings.Trim(ck, ";")
-		return location.String(), ck
-	}
-	return "", location.String()
+	ck = strings.Trim(ck, ";")
+	return location, ck
 }

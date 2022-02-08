@@ -57,7 +57,3 @@ func unpad(ciphertext []byte) []byte {
 	unpadding := int(ciphertext[length-1])
 	return ciphertext[:(length - unpadding)]
 }
-
-func SignEncrypt() {
-
-}

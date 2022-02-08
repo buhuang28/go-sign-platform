@@ -4,6 +4,7 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"github.com/robfig/cron"
 	uuid "github.com/satori/go.uuid"
 	"github.com/valyala/fastjson"
@@ -68,6 +69,7 @@ func GetCpdailyApis(schoolName string) map[string]string {
 	defer func() {
 		err := recover()
 		if err != nil {
+			fmt.Println(err)
 			logger.Println(err)
 		}
 	}()
@@ -81,40 +83,54 @@ func GetCpdailyApis(schoolName string) map[string]string {
 	if schoolInfo.IsEmpty() {
 		return nil
 	}
-	idsUrl := schoolInfo.Data[0].IdsURL
+	//idsUrl := schoolInfo.Data[0].IdsURL
 	ampUrl := schoolInfo.Data[0].AmpURL
-	if strings.Contains(ampUrl, "campusphere") || strings.Contains(ampUrl, "cpdaily") {
-		host := GetRegData(ampUrl)
-		apis["host"] = host
-
-		sucess, location := GetLocation(ampUrl, nil)
-		if !sucess {
-			time.Sleep(time.Second)
-			sucess, location = GetLocation(ampUrl, nil)
-		}
-		if sucess && location != "" {
-			ampUrl = location
-		}
-		apis["login-url"] = ampUrl
-
-		loginHost := GetRegData(ampUrl)
-		apis["login-host"] = loginHost
-		//loginHost := GetRegData
-		//resUrl := GetScheme(ampUrl) + "://" + host
-		//apis["login-url"] = idsUrl + "/login?service=" + GetScheme(resUrl) + `%3A%2F%2F` + host + `%2Fportal%2Flogin`
-		//apis["host"] = host
-	}
-
 	ampUrl2 := schoolInfo.Data[0].AmpURL2
-	if strings.Contains(ampUrl2, "campusphere") || strings.Contains(ampUrl2, "cpdaily") {
-		//host := GetNetLocol(ampUrl2)
-		host := GetRegData(ampUrl2)
-		apis["host"] = host
-		host = GetNetLocol(host)
-		resUrl := GetScheme(ampUrl2) + "://" + host
-		apis["login-url"] = idsUrl + "/login?service=" + GetScheme(resUrl) + `%3A%2F%2F` + host + `%2Fportal%2Flogin`
-		apis["login-host"] = GetRegData(apis["login-url"])
+
+	loginUrl := ""
+	if strings.Contains(ampUrl, "campusphere") {
+		loginUrl = ampUrl
+	} else if strings.Contains(ampUrl2, "campusphere") {
+		loginUrl = ampUrl2
 	}
+	loginUrl, ck := GetLocation2(loginUrl, nil)
+	apis["login-url"] = loginUrl
+	host := GetRegData(loginUrl)
+	apis["login-host"] = host
+	apis["cookie"] = ck
+	fmt.Println(ck)
+	//
+	//if strings.Contains(ampUrl, "campusphere") || strings.Contains(ampUrl, "cpdaily") {
+	//	host := GetRegData(ampUrl)
+	//	apis["host"] = host
+	//
+	//	sucess, location := GetLocation(ampUrl, nil)
+	//	if !sucess {
+	//		time.Sleep(time.Second)
+	//		sucess, location = GetLocation(ampUrl, nil)
+	//	}
+	//	if sucess && location != "" {
+	//		ampUrl = location
+	//	}
+	//	apis["login-url"] = ampUrl
+	//
+	//	loginHost := GetRegData(ampUrl)
+	//	apis["login-host"] = loginHost
+	//	//loginHost := GetRegData
+	//	//resUrl := GetScheme(ampUrl) + "://" + host
+	//	//apis["login-url"] = idsUrl + "/login?service=" + GetScheme(resUrl) + `%3A%2F%2F` + host + `%2Fportal%2Flogin`
+	//	//apis["host"] = host
+	//}
+	//
+	//if strings.Contains(ampUrl2, "campusphere") || strings.Contains(ampUrl2, "cpdaily") {
+	//	//host := GetNetLocol(ampUrl2)
+	//	host := GetRegData(ampUrl2)
+	//	apis["host"] = host
+	//	host = GetNetLocol(host)
+	//	resUrl := GetScheme(ampUrl2) + "://" + host
+	//	apis["login-url"] = idsUrl + "/login?service=" + GetScheme(resUrl) + `%3A%2F%2F` + host + `%2Fportal%2Flogin`
+	//	apis["login-host"] = GetRegData(apis["login-url"])
+	//}
 	return apis
 }
 
@@ -138,6 +154,7 @@ func GetCookie(user *User, apis map[string]string, loginApi string) (ck string) 
 	params["captcha_url"] = ""
 	params["username"] = user.UserName
 	params["password"] = user.PassWord
+	params["cookie"] = apis["cookie"]
 	//cookies := make(map[string]string)
 	sucess, bytes := SendPostForm(loginApi, params)
 	logger.Println(user.UserName, "在", loginApi, "ck返回结果:", string(bytes))
