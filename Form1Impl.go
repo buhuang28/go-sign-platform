@@ -13,6 +13,10 @@ import (
 	"strings"
 )
 
+var (
+	Running bool
+)
+
 //::private::
 type TForm1Fields struct {
 	subItemHit win.TLVHitTestInfo
@@ -257,8 +261,12 @@ func (f *TForm1) OnApplyButtonClick(sender vcl.IObject) {
 	marshal, _ := json.Marshal(data)
 	WriteContent("data.json", string(marshal))
 	go CreateCron()
-	go WebStart(port)
-	vcl.ShowMessage("数据应用成功")
+	if !Running {
+		go WebStart(port)
+	}
+	Running = true
+	Form1.SetCaption(Form1.Caption() + " -----运行中")
+	vcl.ShowMessage("数据应用成功,如果修改了平台运行端口，需要重新打开程序再重新运行")
 }
 
 func (f *TForm1) OnTaskListViewClick(sender vcl.IObject) {

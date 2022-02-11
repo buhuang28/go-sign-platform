@@ -506,23 +506,8 @@ func Sign(u *User, isFailProcess bool, thisApi string) {
 	logger.Println(u.UserName, "开始签到", thisApi)
 	var cbData CallBackData
 	cbData.UserName = u.UserName
-	//apis := GetCpdailyApis(schoolName)
-	//if apis == nil {
-	//	return
-	//}
-	success, cookie, host := GetCookieAndHost(u.UserName, u.PassWord, schoolName, thisApi)
-	//cookie = ""
-	//if cookie == "1" {
-	//	//密码错误的
-	//	logger.Println(u.UserName, "账号密码错误")
-	//	if callBackApi != "" {
-	//		cbData.Status = -1
-	//		cbData.SignResult = "账号密码错误"
-	//		PostRequest(callBackApi, "", nil, cbData)
-	//	}
-	//	return
-	//}
 
+	success, cookie, host := GetCookieAndHost(u.UserName, u.PassWord, schoolName, thisApi)
 	if !success || cookie == "" {
 		logger.Println(u.UserName, "可能账号密码错误")
 		cbData.Status = -1
@@ -539,7 +524,6 @@ func Sign(u *User, isFailProcess bool, thisApi string) {
 		}
 		return
 	}
-
 	sucess, signResult := GetScoolSignTasksAndSign(cookie, host, u)
 	cbData.SignResult = signResult
 	if sucess {
