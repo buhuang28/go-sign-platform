@@ -318,7 +318,7 @@ func (f *TForm1) OnComboBox1Exit(sender vcl.IObject) {
 func (f *TForm1) OnAddLoginApiButtonClick(sender vcl.IObject) {
 	item := f.LoginApiListView.Items().Add()
 	item.SetCaption("")
-	item.SubItems().Add("http://127.0.0.1:8001/api")
+	item.SubItems().Add("http://127.0.0.1:8001/login")
 }
 
 func (f *TForm1) OnLoginApiListViewClick(sender vcl.IObject) {

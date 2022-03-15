@@ -336,14 +336,10 @@ func MD5Sign(user *User, full bool) Result {
 		if v != "FileList" {
 			value = immutable.FieldByName(v).String()
 		} else {
-			continue
-			//list := user.FileList
-			//for _,v2 := range list {
-			//	value += v2+","
-			//}
-			//value = strings.Trim(value,",")
+			//continue
+			value = strings.Join(user.FileList, ",")
 		}
-		if value == "" {
+		if value == "" && v != "FileList" {
 			if full {
 				result.Code = -1
 				result.Message = "invaid " + v

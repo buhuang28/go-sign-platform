@@ -4,6 +4,7 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"github.com/robfig/cron"
 	uuid "github.com/satori/go.uuid"
 	"github.com/valyala/fastjson"
@@ -270,7 +271,7 @@ func GetScoolSignTasksAndSign(cookie, host string, user *User) (bool, string) {
 		//	continue
 		//}
 		//form := FuckForm(task, user)
-		form := FuckForm(task, user)
+		form := FuckForm(host, cookie, task, user)
 		//form := FuckForm2(task, user,cookie,apis)
 		SubmitForm(realCookie, user, form, host)
 	}
@@ -297,7 +298,7 @@ func GetDetailTask(cookie string, params *map[string]string, host string) TaskDe
 }
 
 //填写表单 --不需要图片的
-func FuckForm(task TaskDeatil, user *User) map[string]interface{} {
+func FuckForm(host, cookie string, task TaskDeatil, user *User) map[string]interface{} {
 	form := make(map[string]interface{})
 	if task.Datas.IsNeedExtra == 1 {
 		extraFields := task.Datas.ExtraField
@@ -330,22 +331,21 @@ func FuckForm(task TaskDeatil, user *User) map[string]interface{} {
 	//	form["signPhotoUrl"] = ""
 	//}
 
-	//	if task.Datas.IsPhoto == 1 {
-	//		list := user.FileList
-	//		//上传图片到今日校园的oss
-	//		picMax := len(user.FileList)
-	//		randInt := RandInt64(int64(picMax))
-	//		imgName := "./img/" + list[randInt]
-	//		fileName := UploadPicture(apis,imgName, cookie)
-	//		fmt.Println(imgName)
-	//		pic := GetPic(fileName, cookie, apis)
-	//		fmt.Println(pic)
-	//		if pic == "" {
-	//			return nil
-	//		}
-	//		//从今日校园oss获取图片
-	//		form["signPhotoUrl"] = pic
-	//	}
+	if task.Datas.IsPhoto == 1 {
+		list := user.FileList
+		//上传图片到今日校园的oss
+		picMax := len(user.FileList)
+		randInt := RandInt64(int64(picMax))
+		imgName := "./img/" + list[randInt]
+		fileName := UploadPicture(host, imgName, cookie)
+		pic := GetPic(fileName, cookie, host)
+		if pic == "" {
+			fmt.Println("获取不到图片:", fileName)
+			return nil
+		}
+		//从今日校园oss获取图片
+		form["signPhotoUrl"] = pic
+	}
 
 	form["signInstanceWid"] = task.Datas.SignInstanceWid
 	form["longitude"] = user.Longitude
@@ -664,8 +664,8 @@ func SignFallUser(users []*User) {
 }
 
 //上传图片到今日校园的OSS
-func UploadPicture(apis *map[string]string, imgName, cookie string) string {
-	url := (*apis)["host"] + "wec-counselor-sign-apps/stu/oss/getUploadPolicy"
+func UploadPicture(host, imgName, cookie string) string {
+	url := host + "wec-counselor-sign-apps/stu/oss/getUploadPolicy"
 	params := make(map[string]int)
 	params["fileType"] = 1
 	h := make(map[string]string)
@@ -701,8 +701,8 @@ func UploadPicture(apis *map[string]string, imgName, cookie string) string {
 }
 
 //获取图片
-func GetPic(fileName, cookie string, apis *map[string]string) string {
-	url := (*apis)["host"] + "wec-counselor-sign-apps/stu/sign/previewAttachment"
+func GetPic(fileName, cookie, host string) string {
+	url := host + "wec-counselor-sign-apps/stu/sign/previewAttachment"
 	data := make(map[string]string)
 	data["ossKey"] = fileName
 	sucess, bytes := PostRequest(url, cookie, nil, data)

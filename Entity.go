@@ -94,18 +94,18 @@ func (schoolInfo *SchoolInfo) IsEmpty() bool {
 }
 
 type User struct {
-	UserName       string `json:"user_name"`
-	PassWord       string `json:"pass_word"`
-	Longitude      string `json:"longitude"` //当前位置经度
-	Latitude       string `json:"latitude"`  //纬度
-	AbnormalReason string `json:"abnormal_reason"`
-	Address        string `json:"address"`
-	Time           string `json:"time"` //提交时的时间戳
-	Sign           string `json:"sign"`
-	MorningTime    string `json:"morning_time"`
-	NoonTime       string `json:"noon_time"`
-	EveningTime    string `json:"evening_time"`
-	//FileList       []string `json:"file_list"`
+	UserName       string   `json:"user_name"`
+	PassWord       string   `json:"pass_word"`
+	Longitude      string   `json:"longitude"` //当前位置经度
+	Latitude       string   `json:"latitude"`  //纬度
+	AbnormalReason string   `json:"abnormal_reason"`
+	Address        string   `json:"address"`
+	Time           string   `json:"time"` //提交时的时间戳
+	Sign           string   `json:"sign"`
+	MorningTime    string   `json:"morning_time"`
+	NoonTime       string   `json:"noon_time"`
+	EveningTime    string   `json:"evening_time"`
+	FileList       []string `json:"file_list"`
 	//SignTime string `json:"sign_time"`
 	//SchoolName string `json:"school_name"`
 	//QA map[string]string `json:"qa"`
