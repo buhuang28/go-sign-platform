@@ -311,7 +311,7 @@ func FuckForm(host, cookie string, task TaskDeatil, user *User) map[string]inter
 			}
 			for _, v2 := range v.ExtraFieldItems {
 				extraFieldItemValue := make(map[string]interface{})
-				if v2.Content == questions[v.Title] {
+				if v2.Content == questions[v.Title] || v2.Value == questions[v.Title] {
 					extraFieldItemValue["extraFieldItemValue"] = questions[v.Title]
 					extraFieldItemValue["extraFieldItemWid"] = v2.Wid
 					extraFieldItemValues = append(extraFieldItemValues, extraFieldItemValue)
